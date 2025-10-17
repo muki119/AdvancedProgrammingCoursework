@@ -27,15 +27,21 @@ type MainWindow () as this =
                 let tokens = Interpreter.lexer inputBox.Text
                 let _, result = Interpreter.parseNeval tokens
                 outputBox.Text <- string result
+                outputBox.Focusable <- true
+                outputBox.IsHitTestVisible <- true
                 errorBox.Text <- ""
             with ex ->
                 outputBox.Text <- ""
+                outputBox.Focusable <- false
+                outputBox.IsHitTestVisible <- false
                 errorBox.Text <- ex.Message
         )
 
         clearButton.Click.Add(fun _ ->
             inputBox.Text <- ""
-            outputBox.Text <- "Results will appear here..."
+            outputBox.Text <- "Results here..."
+            outputBox.Focusable <- false
+            outputBox.IsHitTestVisible <- false
             errorBox.Text <- ""
         )
 

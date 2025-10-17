@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="MathInterpreterGUI.MainWindow"
         Width="900" Height="700"
-        Title="Math Expression Evaluator"
+        Title="Maths Expression Evaluator"
         Background="#0d1117"
         MinWidth="600" MinHeight="500">
 
@@ -46,12 +46,12 @@
         
         <!-- Title Section -->
         <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="Math Expression Evaluator" 
+            <TextBlock Text="Maths Expression Evaluator" 
                        FontSize="28" 
                        FontWeight="Bold" 
                        Foreground="#58a6ff"
                        HorizontalAlignment="Center"/>
-            <TextBlock Text="Enter a mathematical expression and click Evaluate" 
+            <TextBlock Text="Enter an expression and click Evaluate" 
                        FontSize="14" 
                        Foreground="#8b949e"
                        HorizontalAlignment="Center"
@@ -116,12 +116,14 @@
                              IsReadOnly="True"
                              AcceptsReturn="True"
                              TextWrapping="Wrap"
-                             Text="Results will appear here..."
+                             Text="Results here..."
                              FontSize="24"
                              FontWeight="Bold"
                              Background="Transparent"
                              BorderThickness="0"
-                             Foreground="#7ee787" />
+                             Foreground="#7ee787"
+                             Focusable="False"
+                             IsHitTestVisible="False" />
                 </ScrollViewer>
             </StackPanel>
         </Border>
