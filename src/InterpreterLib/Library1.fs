@@ -5,7 +5,6 @@ module SumFloat
         | (head:double) :: (tail:list<double>) -> head + sum(tail)
         | [] -> 0.0
 
-
   
 
     

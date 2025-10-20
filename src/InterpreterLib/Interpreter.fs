@@ -15,6 +15,7 @@ module Interpreter
     let lexError = System.Exception("Lexer error") // error declaration 
     let intVal (c:char) = (int)((int)c - (int)'0') // fast way to turn string to number  - number representation of number minus acsii number representation of 0 
     let parseError = System.Exception("Parser error") // error declaration
+    let testCall = Console.WriteLine "F# Connected"
 
     let rec scInt(iStr, iVal) =  // recursive function to scan integer values
         match iStr with

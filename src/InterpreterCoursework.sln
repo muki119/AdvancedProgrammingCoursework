@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CSharpApp", "CSharpApp\CSharpApp.csproj", "{DFDB0E12-6A2A-4D32-B1CD-9F22C662547F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FrontendApp", "FrontendApp\FrontendApp.csproj", "{DFDB0E12-6A2A-4D32-B1CD-9F22C662547F}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSharpLib", "FSharpLib\FSharpLib.fsproj", "{6EC15463-F40B-479F-A67C-A056A9FB5F82}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "InterpreterLib", "InterpreterLib\InterpreterLib.fsproj", "{6EC15463-F40B-479F-A67C-A056A9FB5F82}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
