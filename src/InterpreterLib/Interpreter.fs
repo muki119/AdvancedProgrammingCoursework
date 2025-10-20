@@ -1,10 +1,9 @@
-﻿// Simple Interpreter in F#
+module InterpreterLib.Interpreter
+
+// Simple Interpreter in F#
 // Author: R.J. Lapeer 
 // Date: 23/10/2022
 // Reference: Peter Sestoft, Grammars and parsing with F#, Tech. Report
-
-
-module Interpreter
     open System
     type terminal = 
         Add | Sub | Mul | Div | Lpar | Rpar | Num of int
