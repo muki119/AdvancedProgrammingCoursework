@@ -10,7 +10,7 @@ open System.Reflection
 [<assembly: System.Reflection.AssemblyCompanyAttribute("MathInterpreterGUI")>]
 [<assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")>]
 [<assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")>]
-[<assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+15060d02dddafd2d593c5292ababf602204febec")>]
+[<assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0d69be728dcf2e467988497eb4b5836f9bd6d8e4")>]
 [<assembly: System.Reflection.AssemblyProductAttribute("MathInterpreterGUI")>]
 [<assembly: System.Reflection.AssemblyTitleAttribute("MathInterpreterGUI")>]
 [<assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")>]
