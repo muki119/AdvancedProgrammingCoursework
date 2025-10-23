@@ -1,14 +1,72 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="CalculatorGui.Views.MainWindow"
-        Width="900" Height="700"
         Title="Maths Expression Evaluator"
-        Background="#0d1117"
+        x:Name="mainWindow"
+        Width="1000" Height="800"
         MinWidth="600" MinHeight="500">
 
+    <Window.Resources>
+    <!-- defining elements of the windows colours-->
+    
+        <!-- dark mode colours -->
+        <SolidColorBrush x:Key="DarkBackground">#191919</SolidColorBrush>
+        <SolidColorBrush x:Key="DarkSurface">#2a272a</SolidColorBrush>
+        <SolidColorBrush x:Key="DarkBorder">#4b4a54</SolidColorBrush>
+        <SolidColorBrush x:Key="DarkText">#c9d1d9</SolidColorBrush>
+        <SolidColorBrush x:Key="DarkTextSecondary">#8b949e</SolidColorBrush>
+        <SolidColorBrush x:Key="DarkAccent">#a3cfcd</SolidColorBrush>
+        <SolidColorBrush x:Key="DarkError">#EC1915</SolidColorBrush>
+        <SolidColorBrush x:Key="DarkButtonPrimary">#238636</SolidColorBrush>
+        <SolidColorBrush x:Key="DarkButtonPrimaryHover">#2ea043</SolidColorBrush>
+        <SolidColorBrush x:Key="DarkButtonSecondary">#21262d</SolidColorBrush>
+        <SolidColorBrush x:Key="DarkButtonSecondaryHover">#30363d</SolidColorBrush>
+        <SolidColorBrush x:Key="DarkErrorBackground">#1c1e26</SolidColorBrush>
+
+        <!-- light mode colours -->
+        <SolidColorBrush x:Key="LightBackground">#ffffff</SolidColorBrush>
+        <SolidColorBrush x:Key="LightSurface">#dadde2</SolidColorBrush>
+        <SolidColorBrush x:Key="LightBorder">#b1bdc5</SolidColorBrush>
+        <SolidColorBrush x:Key="LightText">#628281</SolidColorBrush>
+        <SolidColorBrush x:Key="LightTextSecondary">#43655a</SolidColorBrush>
+        <SolidColorBrush x:Key="LightAccent">#324b4a</SolidColorBrush>
+        <SolidColorBrush x:Key="LightError">#EC1915</SolidColorBrush>
+        <SolidColorBrush x:Key="LightButtonPrimary">#238636</SolidColorBrush>
+        <SolidColorBrush x:Key="LightButtonPrimaryHover">#2ea043</SolidColorBrush>
+        <SolidColorBrush x:Key="LightButtonSecondary">#eaeef2</SolidColorBrush>
+        <SolidColorBrush x:Key="LightButtonSecondaryHover">#d0d7de</SolidColorBrush>
+        <SolidColorBrush x:Key="LightErrorBackground">#fff1f0</SolidColorBrush>
+
+    </Window.Resources>
+
+
     <Window.Styles>
+    <!-- styling based on the current theme -->
+
+        <Style Selector="Window">
+            <Setter Property="Background" Value="{DynamicResource WindowBackground}"/>
+        </Style>
+
+        <Style Selector="Menu">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+        </Style>
+
+        <Style Selector="MenuItem">
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Padding" Value="12,8"/>
+        </Style>
+
+        <Style Selector="MenuItem:pointerover /template/ Border#PART_LayoutRoot">
+            <Setter Property="Background" Value="{DynamicResource BorderColor}"/>
+        </Style>
+
+        <Style Selector="MenuItem:selected /template/ Border#PART_LayoutRoot">
+            <Setter Property="Background" Value="{DynamicResource BorderColor}"/>
+        </Style>
+
         <Style Selector="Button">
-            <Setter Property="Background" Value="#238636"/>
+            <Setter Property="Background" Value="{DynamicResource ButtonPrimary}"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="CornerRadius" Value="6"/>
@@ -16,52 +74,108 @@
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Cursor" Value="Hand"/>
         </Style>
+
         <Style Selector="Button:pointerover">
-            <Setter Property="Background" Value="#2ea043"/>
+            <Setter Property="Background" Value="{DynamicResource ButtonPrimaryHover}"/>
         </Style>
+
         <Style Selector="Button:pressed">
-            <Setter Property="Background" Value="#1a7f37"/>
+            <Setter Property="Background" Value="{DynamicResource ButtonPrimaryHover}"/>
         </Style>
+
         <Style Selector="Button.clear">
-            <Setter Property="Background" Value="#21262d"/>
+            <Setter Property="Background" Value="{DynamicResource ButtonSecondary}"/>
         </Style>
+        
         <Style Selector="Button.clear:pointerover">
-            <Setter Property="Background" Value="#30363d"/>
+            <Setter Property="Background" Value="{DynamicResource ButtonSecondaryHover}"/>
         </Style>
+
+        <Style Selector="Button.theme">
+            <Setter Property="Background" Value="{DynamicResource ButtonSecondary}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+        </Style>
+
+        <Style Selector="Button.theme:pointerover">
+            <Setter Property="Background" Value="{DynamicResource ButtonSecondaryHover}"/>
+        </Style>
+
         <Style Selector="TextBox">
-            <Setter Property="Background" Value="#161b22"/>
-            <Setter Property="Foreground" Value="#c9d1d9"/>
-            <Setter Property="BorderBrush" Value="#30363d"/>
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextPrimary}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Padding" Value="12,10"/>
             <Setter Property="FontFamily" Value="Consolas,Monaco,monospace"/>
         </Style>
+
         <Style Selector="TextBox:focus">
-            <Setter Property="BorderBrush" Value="#58a6ff"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
         </Style>
+
+        <Style Selector="TextBlock.title">
+            <Setter Property="Foreground" Value="{DynamicResource AccentColor}"/>
+        </Style>
+
+        <Style Selector="TextBlock.subtitle">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+        </Style>
+
+        <Style Selector="TextBlock.label">
+            <Setter Property="Foreground" Value="{DynamicResource TextSecondary}"/>
+        </Style>
+
+        <Style Selector="TextBlock.result">
+            <Setter Property="Foreground" Value="{DynamicResource SuccessColor}"/>
+        </Style>
+
+        <Style Selector="TextBlock.error">
+            <Setter Property="Foreground" Value="{DynamicResource ErrorColor}"/>
+        </Style>
+
+        <Style Selector="Border.surface">
+            <Setter Property="Background" Value="{DynamicResource SurfaceBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+        </Style>
+
+        <Style Selector="Border.errorBorder">
+            <Setter Property="Background" Value="{DynamicResource ErrorBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ErrorColor}"/>
+        </Style>
+
     </Window.Styles>
 
-    <Grid Margin="30" RowDefinitions="Auto,Auto,Auto,*,Auto">
+    <DockPanel>
+        <!-- menu bar -->
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="View">
+                <MenuItem x:Name="themeMenuItem" Header="Toggle Theme (☀️/🌙)" />
+            </MenuItem>
+            <MenuItem Header="Help">
+                <MenuItem x:Name="helpMenuItem" Header="About Syntax" />
+            </MenuItem>
+        </Menu>
+
+        <Grid Margin="30" RowDefinitions="Auto,Auto,Auto,*,Auto">
         
-        <!-- Title Section -->
+        <!-- title sectioin -->
         <StackPanel Grid.Row="0" Margin="0,0,0,20">
             <TextBlock Text="Maths Expression Evaluator" 
                        FontSize="28" 
                        FontWeight="Bold" 
-                       Foreground="#58a6ff"
+                       Classes="title"
                        HorizontalAlignment="Center"/>
             <TextBlock Text="Enter an expression and click Evaluate" 
                        FontSize="14" 
-                       Foreground="#8b949e"
+                       Classes="subtitle"
                        HorizontalAlignment="Center"
                        Margin="0,8,0,0"/>
         </StackPanel>
 
-        <!-- Input Section -->
+        <!-- input section -->
         <Border Grid.Row="1" 
-                Background="#161b22" 
-                BorderBrush="#30363d" 
+                Classes="surface"
                 BorderThickness="1" 
                 CornerRadius="8" 
                 Padding="20"
@@ -69,7 +183,7 @@
             <StackPanel>
                 <TextBlock Text="Expression:" 
                            FontSize="14" 
-                           Foreground="#8b949e" 
+                           Classes="label"
                            Margin="0,0,0,8"
                            FontWeight="SemiBold"/>
                 <TextBox x:Name="inputBox"
@@ -100,15 +214,14 @@
 
         <!-- Output Section -->
         <Border Grid.Row="3" 
-                Background="#161b22" 
-                BorderBrush="#30363d" 
+                Classes="surface"
                 BorderThickness="1" 
                 CornerRadius="8" 
                 Padding="20">
             <StackPanel>
                 <TextBlock Text="Result:" 
                            FontSize="14" 
-                           Foreground="#8b949e" 
+                           Classes="label"
                            Margin="0,0,0,8"
                            FontWeight="SemiBold"/>
                 <ScrollViewer VerticalScrollBarVisibility="Auto" Height="300">
@@ -121,31 +234,31 @@
                              FontWeight="Bold"
                              Background="Transparent"
                              BorderThickness="0"
-                             Foreground="#7ee787"
+                             Classes="result"
                              Focusable="False"
                              IsHitTestVisible="False" />
                 </ScrollViewer>
             </StackPanel>
         </Border>
 
-        <!-- Error Section -->
+        <!-- error Section -->
         <Border Grid.Row="4" 
                 Margin="0,15,0,0"
                 Padding="15"
-                Background="#1c1e26"
-                BorderBrush="#f85149"
+                Classes="errorBorder"
                 BorderThickness="0"
                 CornerRadius="6"
                 IsVisible="{Binding #errorBox.Text, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Error:" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" Foreground="#f85149" FontWeight="SemiBold"/>
+                <TextBlock Text="Error:" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" Classes="error" FontWeight="SemiBold"/>
                 <TextBlock x:Name="errorBox"
                            FontSize="14"
-                           Foreground="#f85149"
+                           Classes="error"
                            TextWrapping="Wrap"
                            VerticalAlignment="Center" />
             </StackPanel>
         </Border>
 
     </Grid>
+    </DockPanel>
 </Window>
