@@ -15,7 +15,7 @@ type terminal =
     | Rpar
     | Exp
     | Mod
-    | Num of int
+    | Num of float
 
 let str2lst s = [ for c in s -> c ] // simple function to convert string to list of characters
 let isblank c = System.Char.IsWhiteSpace c // checks if is blank
@@ -25,10 +25,20 @@ let intVal (c: char) = (int) ((int) c - (int) '0') // fast way to turn string to
 let parseError = System.Exception("Parser error") // error declaration
 let testCall = Console.WriteLine "F# Connected"
 
-let rec scInt (iStr, iVal) = // recursive function to scan integer values
+let rec scNumber (iStr, iVal: float) = // recursive function to scan integer values
     match iStr with
-    | c :: tail when isdigit c -> scInt (tail, 10 * iVal + (intVal c)) // if digit then recursively call function , passing the rest of the number string and updating the integer value accordingly
-    | _ -> (iStr, iVal)
+    | c :: tail when isdigit c -> scNumber (tail, 10.0 * iVal + (float (intVal c))) // if digit then recursively call function , passing the rest of the number string and updating the integer value accordingly
+    | c :: tail when c = '.' ->
+        // if dot then return rest of string and float value
+        let rec scFloat (fTail, fValue: float, decimalPlace: float) =
+            match fTail with
+            | c :: tail when isdigit c ->
+                scFloat (tail, fValue + (float (intVal c) / decimalPlace), decimalPlace * 10.0) // if its a digit behind the dot , then divide it by the divider place value , and add it to the total float value , then increase the decimal place value by a factor of 10
+            | _ -> (fTail, fValue)
+
+        let (fStr, fVal) = scFloat (tail, float iVal, 10.0)
+        (fStr, fVal) // return the rest of the string and the float value
+    | _ -> (iStr, iVal) // return the rest of the string and the integer value when no more digits found
 
 let lexer input =
     let rec scan input = // recursive function (rec keyword indicates its recursive)
@@ -44,7 +54,7 @@ let lexer input =
         | ')' :: tail -> Rpar :: scan tail // same as above for right parenthesis
         | c :: tail when isblank c -> scan tail // if blank space then just call scan on the rest of the array
         | c :: tail when isdigit c ->
-            let (iStr, iVal) = scInt (tail, intVal c) // if digit then call scInt function to get the full number (in case of multiple digits)
+            let (iStr, iVal) = scNumber (tail, float (intVal c)) // if digit then call scNumber function to get the full number (in case of multiple digits)
             Num iVal :: scan iStr // append Num with the value to the array and call scan on the rest of the array
         | _ -> raise lexError // raise lexer error if none of the above match
 
@@ -117,13 +127,13 @@ let parseNeval tList =
             Topt(tLst, value % tval)
         | _ -> (tList, value)
 
-    and IndicesOpt tList = (NR >> Iopt) tList
+    and IndicesOpt tList = (NR >> Iopt) tList // to check for indicies
 
     and Iopt (tList, value) =
         match tList with
         | Exp :: tail ->
             let (tLst, tval) = NR tail
-            Iopt(tLst, pown value tval)
+            Iopt(tLst, value ** tval)
         | _ -> (tList, value)
 
     and NR tList = // works from the bottom up  // the actual evaluation starts here then gets returned up the chain
