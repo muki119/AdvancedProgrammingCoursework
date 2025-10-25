@@ -15,6 +15,7 @@ type terminal =
     | Rpar
     | Exp
     | Mod
+    | None
     | Num of float
 
 let str2lst s = [ for c in s -> c ] // simple function to convert string to list of characters
@@ -28,12 +29,12 @@ let testCall = Console.WriteLine "F# Connected"
 let rec scNumber (iStr, iVal: float) = // recursive function to scan integer values
     match iStr with
     | c :: tail when isdigit c -> scNumber (tail, 10.0 * iVal + (float (intVal c))) // if digit then recursively call function , passing the rest of the number string and updating the integer value accordingly
-    | c :: tail when c = '.' ->
-        // if dot then return rest of string and float value
+    | c :: tail when c = '.' -> // if dot then return rest of string and float value
         let rec scFloat (fTail, fValue: float, decimalPlace: float) =
             match fTail with
             | c :: tail when isdigit c ->
-                scFloat (tail, fValue + (float (intVal c) / decimalPlace), decimalPlace * 10.0) // if its a digit behind the dot , then divide it by the divider place value , and add it to the total float value , then increase the decimal place value by a factor of 10
+                // if its a digit behind the dot , then divide it by the divider place value , and add it to the total float value , then increase the decimal place value by a factor of 10
+                scFloat (tail, fValue + (float (intVal c) / decimalPlace), decimalPlace * 10.0)
             | _ -> (fTail, fValue)
 
         let (fStr, fVal) = scFloat (tail, float iVal, 10.0)
@@ -41,24 +42,43 @@ let rec scNumber (iStr, iVal: float) = // recursive function to scan integer val
     | _ -> (iStr, iVal) // return the rest of the string and the integer value when no more digits found
 
 let lexer input =
-    let rec scan input = // recursive function (rec keyword indicates its recursive)
+    let rec scan (input, previousToken) = // recursive function (rec keyword indicates its recursive)
+        let isOpperator token =
+            match token with
+            | Add
+            | Sub
+            | Mul
+            | Div
+            | Exp
+            | Mod -> true
+            | _ -> false
+
         match input with // match with the following
         | [] -> [] // empty array - add nothing
-        | '+' :: tail -> Add :: scan tail // if plus then  -> append "Add" operator to array and call scan function with the rest of the array
-        | '-' :: tail -> Sub :: scan tail // same as above for subtraction
-        | '*' :: tail -> Mul :: scan tail // same as above for multiplication
-        | '^' :: tail -> Exp :: scan tail // same as above for exponentiation
-        | '%' :: tail -> Mod :: scan tail // same as above for modulus
-        | '/' :: tail -> Div :: scan tail // same as above for division
-        | '(' :: tail -> Lpar :: scan tail // same as above for left parenthesis
-        | ')' :: tail -> Rpar :: scan tail // same as above for right parenthesis
-        | c :: tail when isblank c -> scan tail // if blank space then just call scan on the rest of the array
+        | '+' :: tail -> Add :: scan (tail, Add) // if plus then  -> append "Add" operator to array and call scan function with the rest of the array
+        | '-' :: tail ->
+            if
+                (not (isOpperator previousToken)) // if previous token is not an operator
+                || (isblank (List.head tail)) // or if the next character is a blank space
+                || (not (isdigit (List.head tail))) // or if the next character is not a digit
+            then
+                Sub :: (scan (tail, Sub)) // treat '-' as subtraction operator; continue scanning from tail, previousToken = Sub
+            else
+                let (iStr, iVal) = scNumber (tail, 0.0) // else treat as negative number
+                Num(-iVal) :: scan (iStr, None) // append Num with negative value to array and call scan on the rest of the array
+        | '*' :: tail -> Mul :: scan (tail, Mul) // same as above for multiplication
+        | '^' :: tail -> Exp :: scan (tail, Exp) // same as above for exponentiation
+        | '%' :: tail -> Mod :: scan (tail, Mod) // same as above for modulus
+        | '/' :: tail -> Div :: scan (tail, Div) // same as above for division
+        | '(' :: tail -> Lpar :: scan (tail, Lpar) // same as above for left parenthesis
+        | ')' :: tail -> Rpar :: scan (tail, Rpar) // same as above for right parenthesis
+        | c :: tail when isblank c -> scan (tail, None) // if blank space then just call scan on the rest of the array
         | c :: tail when isdigit c ->
             let (iStr, iVal) = scNumber (tail, float (intVal c)) // if digit then call scNumber function to get the full number (in case of multiple digits)
-            Num iVal :: scan iStr // append Num with the value to the array and call scan on the rest of the array
+            Num iVal :: scan (iStr, None) // append Num with the value to the array and call scan on the rest of the array
         | _ -> raise lexError // raise lexer error if none of the above match
 
-    scan (str2lst input) // call scan function on the input string converted to a list of characters
+    scan (str2lst input, None) // call scan function on the input string converted to a list of characters
 
 let getInputString () : string =
     Console.Write("Enter an expression: ")
