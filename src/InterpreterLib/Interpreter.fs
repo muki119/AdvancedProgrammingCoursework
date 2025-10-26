@@ -18,13 +18,19 @@ type terminal =
     | None
     | Num of float
 
-let str2lst s = [ for c in s -> c ] // simple function to convert string to list of characters
+
 let isblank c = System.Char.IsWhiteSpace c // checks if is blank
 let isdigit c = System.Char.IsDigit c // checks if its a number (obviously)
 let lexError = System.Exception("Lexer error") // error declaration
 let intVal (c: char) = (int) ((int) c - (int) '0') // fast way to turn string to number  - number representation of number minus acsii number representation of 0
 let parseError = System.Exception("Parser error") // error declaration
 let testCall = Console.WriteLine "F# Connected"
+
+let removeWhitespace (input: string) : string =
+    String.Concat(input.ToCharArray() |> Array.filter (fun c -> not (isblank c)))
+
+let str2lst s = [ for c in removeWhitespace (s) -> c ] // simple function to convert string to list of characters -- remove whitespace before processing
+
 
 let rec scNumber (iStr, iVal: float) = // recursive function to scan integer values
     match iStr with
@@ -57,10 +63,17 @@ let lexer input =
         | [] -> [] // empty array - add nothing
         | '+' :: tail -> Add :: scan (tail, Add) // if plus then  -> append "Add" operator to array and call scan function with the rest of the array
         | '-' :: tail ->
+            let previousTokenIsOperator = isOpperator previousToken || previousToken = None // check if previous token is an operator or the start of the string
+
+            let nextIsValue =
+                match tail with
+                | [] -> false
+                | c :: _ when isdigit c -> true
+                | _ -> false
+
             if
-                (not (isOpperator previousToken)) // if previous token is not an operator
-                || (isblank (List.head tail)) // or if the next character is a blank space
-                || (not (isdigit (List.head tail))) // or if the next character is not a digit
+                (not previousTokenIsOperator) // if previous token is not an operator
+                && nextIsValue // and the next character is a digit
             then
                 Sub :: (scan (tail, Sub)) // treat '-' as subtraction operator; continue scanning from tail, previousToken = Sub
             else
@@ -70,8 +83,8 @@ let lexer input =
         | '^' :: tail -> Exp :: scan (tail, Exp) // same as above for exponentiation
         | '%' :: tail -> Mod :: scan (tail, Mod) // same as above for modulus
         | '/' :: tail -> Div :: scan (tail, Div) // same as above for division
-        | '(' :: tail -> Lpar :: scan (tail, Lpar) // same as above for left parenthesis
-        | ')' :: tail -> Rpar :: scan (tail, Rpar) // same as above for right parenthesis
+        | '(' :: tail -> Lpar :: scan (tail, None) // same as above for left parenthesis
+        | ')' :: tail -> Rpar :: scan (tail, None) // same as above for right parenthesis
         | c :: tail when isblank c -> scan (tail, None) // if blank space then just call scan on the rest of the array
         | c :: tail when isdigit c ->
             let (iStr, iVal) = scNumber (tail, float (intVal c)) // if digit then call scNumber function to get the full number (in case of multiple digits)
@@ -118,6 +131,8 @@ let parser tList = // recursive descent parser implementation -- works in BIDMAS
         | _ -> raise parseError
 
     E tList
+
+
 
 let parseNeval tList =
     let rec E tList = (T >> Eopt) tList // first calls to see if a add or sub opperator was called
