@@ -24,6 +24,8 @@ let isdigit c = System.Char.IsDigit c // checks if its a number (obviously)
 let lexError = System.Exception("Lexer error") // error declaration
 let intVal (c: char) = (int) ((int) c - (int) '0') // fast way to turn string to number  - number representation of number minus acsii number representation of 0
 let parseError = System.Exception("Parser error") // error declaration
+
+let zeroDivisionError = System.Exception("Cannot Divide by zero") // error declaration
 let testCall = Console.WriteLine "F# Connected"
 
 let removeWhitespace (input: string) : string =
@@ -56,6 +58,8 @@ let lexer input =
             | Mul
             | Div
             | Exp
+            | Lpar
+            | Rpar
             | Mod -> true
             | _ -> false
 
@@ -66,9 +70,9 @@ let lexer input =
             let previousTokenIsOperator = isOpperator previousToken || previousToken = None // check if previous token is an operator or the start of the string
 
             let nextIsValue =
-                match tail with
+                match tail with // looks at head of the tail to see if its a digit
                 | [] -> false
-                | c :: _ when isdigit c -> true
+                | c :: _ when isdigit c || c = '-' -> true // also check for negative sign to allow for multiple negative signs
                 | _ -> false
 
             if
@@ -78,17 +82,17 @@ let lexer input =
                 Sub :: (scan (tail, Sub)) // treat '-' as subtraction operator; continue scanning from tail, previousToken = Sub
             else
                 let (iStr, iVal) = scNumber (tail, 0.0) // else treat as negative number
-                Num(-iVal) :: scan (iStr, None) // append Num with negative value to array and call scan on the rest of the array
+                Num -iVal :: scan (iStr, Num -iVal) // append Num with negative value to array and call scan on the rest of the array
         | '*' :: tail -> Mul :: scan (tail, Mul) // same as above for multiplication
         | '^' :: tail -> Exp :: scan (tail, Exp) // same as above for exponentiation
         | '%' :: tail -> Mod :: scan (tail, Mod) // same as above for modulus
         | '/' :: tail -> Div :: scan (tail, Div) // same as above for division
-        | '(' :: tail -> Lpar :: scan (tail, None) // same as above for left parenthesis
-        | ')' :: tail -> Rpar :: scan (tail, None) // same as above for right parenthesis
-        | c :: tail when isblank c -> scan (tail, None) // if blank space then just call scan on the rest of the array
+        | '(' :: tail -> Lpar :: scan (tail, Lpar) // same as above for left parenthesis
+        | ')' :: tail -> Rpar :: scan (tail, Rpar) // same as above for right parenthesis
+        | c :: tail when isblank c -> scan (tail, previousToken) // if blank space then just call scan on the rest of the array
         | c :: tail when isdigit c ->
             let (iStr, iVal) = scNumber (tail, float (intVal c)) // if digit then call scNumber function to get the full number (in case of multiple digits)
-            Num iVal :: scan (iStr, None) // append Num with the value to the array and call scan on the rest of the array
+            Num iVal :: scan (iStr, Num iVal) // append Num with the value to the array and call scan on the rest of the array
         | _ -> raise lexError // raise lexer error if none of the above match
 
     scan (str2lst input, None) // call scan function on the input string converted to a list of characters
@@ -156,10 +160,18 @@ let parseNeval tList =
             Topt(tLst, value * tval)
         | Div :: tail ->
             let (tLst, tval) = IndicesOpt tail
-            Topt(tLst, value / tval)
+
+            if tval = 0.0 || value = 0.0 then
+                raise zeroDivisionError
+            else
+                Topt(tLst, value / tval)
         | Mod :: tail ->
             let (tLst, tval) = IndicesOpt tail //-- should probably call the NR function here to get the value to mod by
-            Topt(tLst, value % tval)
+
+            if tval = 0.0 || value = 0.0 then
+                raise zeroDivisionError
+            else
+                Topt(tLst, value % tval)
         | _ -> (tList, value)
 
     and IndicesOpt tList = (NR >> Iopt) tList // to check for indicies
