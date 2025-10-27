@@ -8,18 +8,12 @@ using System.Linq;
 using System.Collections.Generic;
 
 namespace CalculatorGui.Views;
+// NEED TO REWRITE THIS FILE TO BE MORE FUNCTIONAL AND IMPROVE CODE QUALITY
 
-/// <summary>
-/// Functional-style Main Window implementation
-/// Principles: Expression-based design, minimal mutable state, pure functions where possible
-/// </summary>
 public partial class MainWindow : Window
 {
-    // Immutable theme state record for functional theme management
+    // state management of the light and dark mode theme
     private record ThemeState(bool IsDark);
-
-    // Minimal mutable state - only for UI element references and theme state
-    // Note: Avalonia GUI framework requires some imperative interaction
     private readonly TextBox? _inputBox;
     private readonly TextBox? _outputBox;
     private readonly TextBlock? _errorBox;
@@ -28,14 +22,14 @@ public partial class MainWindow : Window
     private readonly MenuItem? _helpMenuItem;
     private readonly MenuItem? _themeMenuItem;
 
-    // Theme state as immutable value - changed by returning new state
+    // setting the theme to dark by default
     private ThemeState _currentTheme = new ThemeState(IsDark: true);
 
     public MainWindow()
     {
         InitializeComponent();
 
-        // Initialize UI element references (expression-based with pattern matching)
+        // init ui elements
         _inputBox = this.FindControl<TextBox>("inputBox");
         _outputBox = this.FindControl<TextBox>("outputBox");
         _errorBox = this.FindControl<TextBlock>("errorBox");
@@ -44,19 +38,14 @@ public partial class MainWindow : Window
         _helpMenuItem = this.FindControl<MenuItem>("helpMenuItem");
         _themeMenuItem = this.FindControl<MenuItem>("themeMenuItem");
 
-        // Initialize default theme (Dark mode)
         ApplyTheme(_currentTheme);
 
-        // Setup event handlers using lambda expressions
         SetupEventHandlers();
     }
 
-    /// <summary>
-    /// Setup event handlers using lambda expressions (higher-order functions)
-    /// </summary>
     private void SetupEventHandlers()
     {
-        // Attach event handlers as lambda expressions
+
         if (_evaluateButton != null)
             _evaluateButton.Click += (sender, e) => HandleEvaluation();
 
@@ -70,9 +59,7 @@ public partial class MainWindow : Window
             _themeMenuItem.Click += (sender, e) => HandleThemeToggle();
     }
 
-    /// <summary>
-    /// Pure function: Evaluates expression and returns result or error
-    /// </summary>
+    // evaluates expression and returns result or error
     private (bool success, string result, string error) EvaluateExpression(string input)
     {
         try
@@ -87,9 +74,7 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// Handler: Orchestrates evaluation - applies pure function to UI
-    /// </summary>
+    // evaluation, applies pure function to UI
     private void HandleEvaluation()
     {
         var input = _inputBox?.Text ?? string.Empty;
@@ -99,9 +84,7 @@ public partial class MainWindow : Window
         ApplyEvaluationResult(success, result, error);
     }
 
-    /// <summary>
-    /// Pure side effect: Applies evaluation result to UI
-    /// </summary>
+    // applies evaluation result to UI
     private void ApplyEvaluationResult(bool success, string result, string error)
     {
         if (_outputBox == null || _errorBox == null) return;
@@ -122,9 +105,7 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// Handler: Clears all input and output fields
-    /// </summary>
+    // clears all input and output fields
     private void HandleClear()
     {
         if (_inputBox != null) _inputBox.Text = string.Empty;
@@ -138,25 +119,18 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// Handler: Toggles theme using immutable state transformation
-    /// </summary>
+    // toggles theme using immutable state transformation
     private void HandleThemeToggle()
     {
-        // Functional state update: create new immutable state
         _currentTheme = new ThemeState(IsDark: !_currentTheme.IsDark);
         ApplyTheme(_currentTheme);
     }
 
-    /// <summary>
-    /// Pure function: Returns theme prefix based on theme state
-    /// </summary>
+    //  returns theme prefix based on theme state
     private string GetThemePrefix(ThemeState theme) =>
         theme.IsDark ? "Dark" : "Light";
 
-    /// <summary>
-    /// Pure function: Returns list of resource keys to update
-    /// </summary>
+    // returns list of resource keys to update
     private IEnumerable<(string target, string source)> GetResourceMappings(string prefix) =>
         new[]
         {
@@ -175,9 +149,7 @@ public partial class MainWindow : Window
             ("ErrorBackground", $"{prefix}ErrorBackground")
         };
 
-    /// <summary>
-    /// Applies theme by updating resources (expression-based with LINQ)
-    /// </summary>
+    // applies themes
     private void ApplyTheme(ThemeState theme)
     {
         if (Resources == null) return;
@@ -185,16 +157,14 @@ public partial class MainWindow : Window
         var prefix = GetThemePrefix(theme);
         var mappings = GetResourceMappings(prefix);
 
-        // Functional iteration using LINQ/higher-order functions
+        // functional iteration using high order functions
         mappings
             .Where(m => Resources.TryGetResource(m.source, null, out _))
             .ToList()
             .ForEach(m => UpdateSingleResource(m.target, m.source));
     }
 
-    /// <summary>
-    /// Pure side effect: Updates a single resource
-    /// </summary>
+    // updates a resource
     private void UpdateSingleResource(string key, string sourceKey)
     {
         if (Resources != null && Resources.TryGetResource(sourceKey, null, out var resource))
@@ -203,18 +173,14 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// Handler: Displays help dialog asynchronously
-    /// </summary>
+    // handler that display help dialog asynchronously
     private async Task HandleHelp()
     {
         var dialog = CreateHelpDialog();
         await dialog.ShowDialog(this);
     }
 
-    /// <summary>
-    /// Pure function: Creates help dialog window (expression-based construction)
-    /// </summary>
+    // creates help dialog window 
     private Window CreateHelpDialog()
     {
         var helpDialog = new Window
@@ -227,18 +193,15 @@ public partial class MainWindow : Window
             Background = Resources?["WindowBackground"] as IBrush
         };
 
-        // Apply current theme resources to dialog
+        // apply current theme resources to dialog
         ApplyDialogResources(helpDialog);
 
-        // Build content using expression-based composition
         helpDialog.Content = CreateHelpDialogContent(helpDialog);
 
         return helpDialog;
     }
 
-    /// <summary>
-    /// Pure function: Applies theme resources to dialog
-    /// </summary>
+    // applies theme resources to dialog
     private void ApplyDialogResources(Window dialog)
     {
         if (Resources == null) return;
@@ -262,9 +225,7 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>
-    /// Pure function: Creates help dialog content using functional composition
-    /// </summary>
+    // creates help dialog content using functional composition
     private ScrollViewer CreateHelpDialogContent(Window dialog)
     {
         var scrollViewer = new ScrollViewer
@@ -275,7 +236,7 @@ public partial class MainWindow : Window
 
         var helpContent = new StackPanel { Spacing = 15 };
 
-        // Build content using sequence of expressions
+        // build content using sequence of expressions
         var contentElements = CreateHelpContentElements(dialog);
         foreach (var element in contentElements)
         {
@@ -286,10 +247,7 @@ public partial class MainWindow : Window
         return scrollViewer;
     }
 
-    /// <summary>
-    /// Pure function: Returns sequence of help content UI elements
-    /// Uses yield for lazy evaluation (functional iterator pattern)
-    /// </summary>
+    // returns sequence of help content UI elements
     private IEnumerable<Control> CreateHelpContentElements(Window dialog)
     {
         // Title
@@ -302,37 +260,35 @@ public partial class MainWindow : Window
             Margin = new Avalonia.Thickness(0, 0, 0, 10)
         };
 
-        // Operators Section
+        // operators 
         yield return CreateSectionHeader("Supported Operators");
         foreach (var item in GetOperatorHelpItems())
             yield return item;
 
-        // Parentheses Section
+        // brackets 
         yield return CreateSectionHeader("Parentheses");
         yield return CreateHelpItem("Grouping", "( )", "(5 + 3) * 2");
 
-        // Number Types Section
+        // number types
         yield return CreateSectionHeader("Number Types");
         foreach (var item in GetNumberTypeHelpItems())
             yield return item;
 
-        // Rules Section
+        // rules 
         yield return CreateSectionHeader("Expression Rules");
         foreach (var rule in GetExpressionRules())
             yield return CreateInfoText(rule);
 
-        // Examples Section
+        // eg 
         yield return CreateSectionHeader("Example Expressions");
         foreach (var example in GetExampleExpressions())
             yield return CreateExampleText(example);
 
-        // Close button
+        // close button
         yield return CreateCloseButton(dialog);
     }
 
-    /// <summary>
-    /// Pure function: Returns operator help items as sequence
-    /// </summary>
+    // returns operator help items as sequence
     private IEnumerable<Border> GetOperatorHelpItems() =>
         new[]
         {
@@ -345,9 +301,8 @@ public partial class MainWindow : Window
             CreateHelpItem("Unary Minus", "−", "-5 + 3")
         };
 
-    /// <summary>
-    /// Pure function: Returns number type help items as sequence
-    /// </summary>
+    // text for the boxes
+    // returns number type 
     private IEnumerable<Border> GetNumberTypeHelpItems() =>
         new[]
         {
@@ -355,9 +310,9 @@ public partial class MainWindow : Window
             CreateHelpItem("Floating Point", ".", "3.14, -2.5, 0.001")
         };
 
-    /// <summary>
-    /// Pure function: Returns expression rules as sequence
-    /// </summary>
+
+    // returns expression rules
+
     private IEnumerable<string> GetExpressionRules() =>
         new[]
         {
@@ -367,21 +322,17 @@ public partial class MainWindow : Window
             "• Supports nested parentheses"
         };
 
-    /// <summary>
-    /// Pure function: Returns example expressions as sequence
-    /// </summary>
+    // retrusn experssions
     private IEnumerable<string> GetExampleExpressions() =>
-        new[]
-        {
+    new[]
+    {
             "(5 + 3) * 2 - 4 / 2",
             "2 ^ 3 + 5 * (10 - 3)",
             "-10 + 20 / 2",
             "3.14 * 2.5 ^ 2"
-        };
+    };
 
-    /// <summary>
-    /// Pure function: Creates close button with event handler
-    /// </summary>
+    // creates close button 
     private Button CreateCloseButton(Window dialog)
     {
         var closeButton = new Button
@@ -397,7 +348,7 @@ public partial class MainWindow : Window
             FontWeight = Avalonia.Media.FontWeight.SemiBold
         };
 
-        // Lambda expression for event handler
+        //lamabda expression for event handler
         closeButton.Click += (s, e) => dialog.Close();
 
         return closeButton;
@@ -405,9 +356,7 @@ public partial class MainWindow : Window
 
     #region UI Element Factory Functions (Pure, Expression-Based)
 
-    /// <summary>
-    /// Pure function: Creates section header border element
-    /// </summary>
+    // creates section header border element
     private Border CreateSectionHeader(string text) =>
         new Border
         {
@@ -425,9 +374,8 @@ public partial class MainWindow : Window
             }
         };
 
-    /// <summary>
-    /// Pure function: Creates help item border with content
-    /// </summary>
+    // creates help item border with content
+
     private Border CreateHelpItem(string name, string symbol, string example) =>
         new Border
         {
@@ -440,9 +388,7 @@ public partial class MainWindow : Window
             Child = CreateHelpItemContent(name, symbol, example)
         };
 
-    /// <summary>
-    /// Pure function: Creates help item content panel
-    /// </summary>
+    // creates help item panel
     private StackPanel CreateHelpItemContent(string name, string symbol, string example)
     {
         var panel = new StackPanel
@@ -451,7 +397,7 @@ public partial class MainWindow : Window
             Spacing = 10
         };
 
-        // Expression-based child addition using collection initializer pattern
+
         var children = new Control[]
         {
             new TextBlock
@@ -486,22 +432,17 @@ public partial class MainWindow : Window
         return panel;
     }
 
-    /// <summary>
-    /// Pure function: Creates info text block
-    /// </summary>
+    /// creates info text block
     private TextBlock CreateInfoText(string text) =>
-        new TextBlock
-        {
-            Text = text,
-            FontSize = 14,
-            Foreground = Resources?["TextPrimary"] as IBrush,
-            Margin = new Avalonia.Thickness(10, 3),
-            TextWrapping = Avalonia.Media.TextWrapping.Wrap
-        };
+    new TextBlock
+    {
+        Text = text,
+        FontSize = 14,
+        Foreground = Resources?["TextPrimary"] as IBrush,
+        Margin = new Avalonia.Thickness(10, 3),
+        TextWrapping = Avalonia.Media.TextWrapping.Wrap
+    };
 
-    /// <summary>
-    /// Pure function: Creates example text border
-    /// </summary>
     private Border CreateExampleText(string example) =>
         new Border
         {

@@ -149,12 +149,15 @@
     <DockPanel>
         <!-- menu bar -->
         <Menu DockPanel.Dock="Top">
+        
             <MenuItem Header="View">
                 <MenuItem x:Name="themeMenuItem" Header="Toggle Theme (☀️/🌙)" />
             </MenuItem>
+
             <MenuItem Header="Help">
                 <MenuItem x:Name="helpMenuItem" Header="About Syntax" />
             </MenuItem>
+
         </Menu>
 
         <Grid Margin="30" RowDefinitions="Auto,Auto,Auto,*,Auto">
@@ -189,11 +192,11 @@
                 <TextBox x:Name="inputBox"
                          Height="45"
                          FontSize="18"
-                         Watermark="e.g., (5 + 3) * 2 - 4 / 2" />
+                         Watermark="e.g., (2 + 1) * 5 - 4 / 2" />
             </StackPanel>
         </Border>
 
-        <!-- Buttons Section -->
+        <!-- buttons section -->
         <StackPanel Grid.Row="2" 
                     Orientation="Horizontal" 
                     HorizontalAlignment="Center"
@@ -212,7 +215,7 @@
                     Classes="clear" />
         </StackPanel>
 
-        <!-- Output Section -->
+        <!-- output section -->
         <Border Grid.Row="3" 
                 Classes="surface"
                 BorderThickness="1" 
