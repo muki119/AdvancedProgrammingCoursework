@@ -298,7 +298,6 @@ public partial class MainWindow : Window
             CreateHelpItem("Division", "/", "15 / 3"),
             CreateHelpItem("Remainder", "%", "17 % 5"),
             CreateHelpItem("Power", "^", "2 ^ 8"),
-            CreateHelpItem("Unary Minus", "−", "-5 + 3")
         };
 
     // text for the boxes
@@ -307,7 +306,7 @@ public partial class MainWindow : Window
         new[]
         {
             CreateHelpItem("Integers", "0-9", "42, 123, -7"),
-            CreateHelpItem("Floating Point", ".", "3.14, -2.5, 0.001")
+            CreateHelpItem("Floating Point", ".", "3.14, -2.25, 0.021")
         };
 
 
@@ -326,10 +325,10 @@ public partial class MainWindow : Window
     private IEnumerable<string> GetExampleExpressions() =>
     new[]
     {
-            "(5 + 3) * 2 - 4 / 2",
-            "2 ^ 3 + 5 * (10 - 3)",
+            "(2 + 3) * 7 - 6 / 2",
+            "2 ^ 4 + 2 * (30 - 3)",
             "-10 + 20 / 2",
-            "3.14 * 2.5 ^ 2"
+            "3.14 * 3.5 ^ 2"
     };
 
     // creates close button 

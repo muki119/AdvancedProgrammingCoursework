@@ -107,7 +107,7 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Padding" Value="12,10"/>
-            <Setter Property="FontFamily" Value="Consolas,Monaco,monospace"/>
+            <Setter Property="FontFamily" Value="monospace,Monaco,"/>
         </Style>
 
         <Style Selector="TextBox:focus">
@@ -151,7 +151,7 @@
         <Menu DockPanel.Dock="Top">
         
             <MenuItem Header="View">
-                <MenuItem x:Name="themeMenuItem" Header="Toggle Theme (☀️/🌙)" />
+                <MenuItem x:Name="themeMenuItem" Header="Toggle Theme (Light / Dark)" />
             </MenuItem>
 
             <MenuItem Header="Help">

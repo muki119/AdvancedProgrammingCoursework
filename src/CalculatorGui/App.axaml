@@ -3,7 +3,6 @@
              x:Class="CalculatorGui.App"
              xmlns:local="using:CalculatorGui"
              RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.DataTemplates>
         <local:ViewLocator/>
