@@ -65,8 +65,9 @@ public partial class MainWindow : Window
         try
         {
             var tokens = Interpreter.lexer(input);
-            var (_, result) = Interpreter.parseNeval(tokens);
-            return (success: true, result: result.ToString(), error: string.Empty);
+            var output = Interpreter.parseNeval(tokens);
+            var o = output.ToValueTuple();
+            return (success: true, result: o.Item2.ToString(), error: string.Empty);
         }
         catch (Exception ex)
         {

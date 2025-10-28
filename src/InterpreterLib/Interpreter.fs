@@ -6,6 +6,7 @@ module InterpreterLib.Interpreter
 // Reference: Peter Sestoft, Grammars and parsing with F#, Tech. Report
 open System
 
+
 type terminal =
     | Add
     | Sub
@@ -15,12 +16,18 @@ type terminal =
     | Rpar
     | Exp
     | Mod
+    | Assign
     | None
     | Num of float
+    | Sym of char
 
+let mutable SymbolTable = Map.empty<string, float> // empty map for variables
+let resolveVar (name: string) : float option = Map.tryFind name SymbolTable
 
 let isblank c = System.Char.IsWhiteSpace c // checks if is blank
 let isdigit c = System.Char.IsDigit c // checks if its a number (obviously)
+
+let isAlpha c = System.Char.IsLetter c // checks if its a letter
 let lexError = System.Exception("Lexer error") // error declaration
 let intVal (c: char) = (int) ((int) c - (int) '0') // fast way to turn string to number  - number representation of number minus acsii number representation of 0
 let parseError = System.Exception("Parser error") // error declaration
@@ -60,6 +67,7 @@ let lexer input =
             | Exp
             | Lpar
             | Rpar
+            | Assign
             | Mod -> true
             | _ -> false
 
@@ -80,15 +88,22 @@ let lexer input =
                 && nextIsValue // and the next character is a digit
             then
                 Sub :: (scan (tail, Sub)) // treat '-' as subtraction operator; continue scanning from tail, previousToken = Sub
+            else if // append Num with negative value to array and call scan on the rest of the array
+                not tail.IsEmpty && isAlpha tail.Head
+            then
+                Num -1.0 :: Mul :: scan (tail, Num -1.0)
             else
                 let (iStr, iVal) = scNumber (tail, 0.0) // else treat as negative number
-                Num -iVal :: scan (iStr, Num -iVal) // append Num with negative value to array and call scan on the rest of the array
+                Num -iVal :: scan (iStr, Num -iVal) // treat as multiplication by -1 if next character is a letter (variable)
+
         | '*' :: tail -> Mul :: scan (tail, Mul) // same as above for multiplication
         | '^' :: tail -> Exp :: scan (tail, Exp) // same as above for exponentiation
         | '%' :: tail -> Mod :: scan (tail, Mod) // same as above for modulus
         | '/' :: tail -> Div :: scan (tail, Div) // same as above for division
         | '(' :: tail -> Lpar :: scan (tail, Lpar) // same as above for left parenthesis
         | ')' :: tail -> Rpar :: scan (tail, Rpar) // same as above for right parenthesis
+        | '=' :: tail -> Assign :: scan (tail, Assign) // same as above for assignment operator
+        | c :: tail when isAlpha c -> Sym c :: scan (tail, Sym c) // if letter then append Sym with the character to the array and call scan on the rest of the array
         | c :: tail when isblank c -> scan (tail, previousToken) // if blank space then just call scan on the rest of the array
         | c :: tail when isdigit c ->
             let (iStr, iVal) = scNumber (tail, float (intVal c)) // if digit then call scNumber function to get the full number (in case of multiple digits)
@@ -139,62 +154,89 @@ let parser tList = // recursive descent parser implementation -- works in BIDMAS
 
 
 let parseNeval tList =
-    let rec E tList = (T >> Eopt) tList // first calls to see if a add or sub opperator was called
+    let rec A tList = (E >> AssignOpt) tList // basically calls E first to evaluate any expression
 
-    and Eopt (tList, value) = // takes a operator and a value
+    and AssignOpt (tList, value, var) =
+        // resolve variable assignment here
+        // find an equals sign to assign a variable
+        let varTobeAssigned = var.ToString()
+
+        match tList with
+        | Assign :: tail ->
+            // if assign is found and a var char is passed up from the E function
+            // then assign the value from another AssignOpt call which evaluates the rest of the list
+            let (tLst, tval, var) = E tail // evaluate the rest of the list after the assignment operator
+            SymbolTable <- SymbolTable.Add(varTobeAssigned, tval) // add the variable and its value to the symbol table
+            (tLst, tval, var) // return the rest of the list , the value assigned and the variable char
+        | _ -> (tList, value, var) // if no assignment found then return the list , value and variable char
+
+
+    and E tList = (T >> Eopt) tList // first calls to see if a add or sub opperator was called
+
+    and Eopt (tList, value, var) = // takes a operator and a value
         match tList with
         | Add :: tail ->
-            let (tLst, tval) = T tail // if opperator is addition then call T on the rest of the list which goes to the bottom until a number is found
-            Eopt(tLst, value + tval) // then recursively call Eopt again with the updated value
+            let (tLst, tval, var) = T tail // if opperator is addition then call T on the rest of the list which goes to the bottom until a number is found
+            Eopt(tLst, value + tval, var) // then recursively call Eopt again with the updated value
         | Sub :: tail ->
-            let (tLst, tval) = T tail // will basically call the rest of the functions until a number is found - will also do all the multiplication and division first due to the order of the calls (Bidmas)
-            Eopt(tLst, value - tval)
-        | _ -> (tList, value) // if no operator found then return the list and the value
+            let (tLst, tval, var) = T tail // will basically call the rest of the functions until a number is found - will also do all the multiplication and division first due to the order of the calls (Bidmas)
+            Eopt(tLst, value - tval, var)
+        | _ -> (tList, value, var) // if no operator found then return the list and the value
 
     and T tList = (IndicesOpt >> Topt) tList
 
-    and Topt (tList, value) =
+    and Topt (tList, value, var) =
         match tList with
         | Mul :: tail ->
-            let (tLst, tval) = IndicesOpt tail
-            Topt(tLst, value * tval)
+            let (tLst, tval, var) = IndicesOpt tail
+            Topt(tLst, value * tval, var)
         | Div :: tail ->
-            let (tLst, tval) = IndicesOpt tail
+            let (tLst, tval, var) = IndicesOpt tail
 
             if tval = 0.0 || value = 0.0 then
                 raise zeroDivisionError
             else
-                Topt(tLst, value / tval)
+                Topt(tLst, value / tval, var)
         | Mod :: tail ->
-            let (tLst, tval) = IndicesOpt tail //-- should probably call the NR function here to get the value to mod by
+            let (tLst, tval, var) = IndicesOpt tail
 
             if tval = 0.0 || value = 0.0 then
                 raise zeroDivisionError
             else
-                Topt(tLst, value % tval)
-        | _ -> (tList, value)
+                Topt(tLst, value % tval, var)
+        | _ -> (tList, value, var)
 
     and IndicesOpt tList = (NR >> Iopt) tList // to check for indicies
 
-    and Iopt (tList, value) =
+    and Iopt (tList, value, var) =
         match tList with
         | Exp :: tail ->
-            let (tLst, tval) = NR tail
-            Iopt(tLst, value ** tval)
-        | _ -> (tList, value)
+            let (tLst, tval, var) = NR tail
+            Iopt(tLst, value ** tval, var)
+        | _ -> (tList, value, var)
 
     and NR tList = // works from the bottom up  // the actual evaluation starts here then gets returned up the chain
         match tList with
-        | Num value :: tail -> (tail, value)
+        | Num value :: tail -> (tail, value, '_') // if number found then return the rest of the list , the number value and a placeholder char for variable
+        | Sym var :: tail ->
+            if not tail.IsEmpty && tail.Head = Assign then
+                // add another param to all functions to pass symbol char up the chain
+                (tail, 0.0, var) // if assignment found after variable , return tail , 0.0 value ( since value will be assigned later ) and the variable character
+            else
+                // otherwise resolve variable value and return its value , with no assignment field
+                match resolveVar (var.ToString()) with // try to find the variable in the symbol table
+                | Some v -> (tail, v, '_') // if found return the tail , the variable value and placeholder char
+                | _ -> raise parseError
+
         | Lpar :: tail ->
-            let (tLst, tval) = E tail // in the case of a left parenthesis - recursive call to break left par to get the actual values within
+            let (tLst, tval, var) = E tail // in the case of a left parenthesis - recursive call to break left par to get the actual values within
 
             match tLst with // with the output from the recursive call , try to find the right par
-            | Rpar :: tail -> (tail, tval) // if the right is found , return the tail and the broken down literal values
+            | Rpar :: tail -> (tail, tval, var) // if the right is found , return the tail and the broken down literal values
             | _ -> raise parseError // raises error in the event a bracket cannot be found
         | _ -> raise parseError
 
-    E tList
+    A tList
 
 let rec printTList (lst: list<terminal>) : list<string> =
     match lst with
