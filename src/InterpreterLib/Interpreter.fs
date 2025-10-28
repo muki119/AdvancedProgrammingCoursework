@@ -21,8 +21,7 @@ type terminal =
     | Num of float
     | Sym of string
 
-let mutable SymbolTable = Map.empty<string, float> // empty map for variables
-let resolveVar (name: string) : float option = Map.tryFind name SymbolTable
+
 
 let isblank c = System.Char.IsWhiteSpace c // checks if is blank
 let isdigit c = System.Char.IsDigit c // checks if its a number (obviously)
@@ -33,13 +32,25 @@ let intVal (c: char) = (int) ((int) c - (int) '0') // fast way to turn string to
 let parseError = System.Exception("Parser error") // error declaration
 
 let zeroDivisionError = System.Exception("Cannot Divide by zero") // error declaration
+
+let variableNotFoundError (varName: string) =
+    System.Exception(sprintf "Variable `%s` not found" varName)
+
 let testCall = Console.WriteLine "F# Connected"
 
 let removeWhitespace (input: string) : string =
-    String.Concat(input.ToCharArray() |> Array.filter (fun c -> not (isblank c)))
+    String.Concat(input.ToCharArray() |> Array.filter (fun c -> not (isblank c))) // turns string into char array |> output of the 'ToCharArray' function is piped to filter function which removes all that is blank , then concatenated back into a string
 
 let str2lst s = [ for c in removeWhitespace (s) -> c ] // simple function to convert string to list of characters -- remove whitespace before processing
 
+let mutable SymbolTable = Map.empty<string, float> // empty map for variables
+
+let resolveVar (name: string) : float option =
+    let value = Map.tryFind name SymbolTable
+
+    match value with
+    | Some v -> Some v
+    | _ -> raise (variableNotFoundError name)
 
 let rec scNumber (iStr, iVal: float) = // recursive function to scan integer values
     match iStr with
@@ -103,7 +114,7 @@ let lexer input =
         | '(' :: tail -> Lpar :: scan (tail, Lpar) // same as above for left parenthesis
         | ')' :: tail -> Rpar :: scan (tail, Rpar) // same as above for right parenthesis
         | '=' :: tail -> Assign :: scan (tail, Assign) // same as above for assignment operator
-        | c :: tail when isAlpha c ->
+        | c :: tail when isAlpha c -> // if letter then start building variable string -- variable has to start with a letter - much like programming languages
             let rec buildVarString (strTail, char) =
                 match strTail with
                 | c :: tail when isAlpha c || isdigit c -> buildVarString (tail, char + c.ToString()) // if letter or digit then keep building the variable string
@@ -201,14 +212,14 @@ let parseNeval tList =
         | Div :: tail ->
             let (tLst, tval, var) = IndicesOpt tail
 
-            if tval = 0.0 || value = 0.0 then
+            if tval = 0.0 then
                 raise zeroDivisionError
             else
                 Topt(tLst, value / tval, var)
         | Mod :: tail ->
             let (tLst, tval, var) = IndicesOpt tail
 
-            if tval = 0.0 || value = 0.0 then
+            if tval = 0.0 then
                 raise zeroDivisionError
             else
                 Topt(tLst, value % tval, var)
