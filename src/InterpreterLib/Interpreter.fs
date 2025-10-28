@@ -19,7 +19,7 @@ type terminal =
     | Assign
     | None
     | Num of float
-    | Sym of char
+    | Sym of string
 
 let mutable SymbolTable = Map.empty<string, float> // empty map for variables
 let resolveVar (name: string) : float option = Map.tryFind name SymbolTable
@@ -80,7 +80,7 @@ let lexer input =
             let nextIsValue =
                 match tail with // looks at head of the tail to see if its a digit
                 | [] -> false
-                | c :: _ when isdigit c || c = '-' -> true // also check for negative sign to allow for multiple negative signs
+                | c :: _ when isdigit c || c = '-' || isAlpha c -> true // also check for negative sign to allow for multiple negative signs
                 | _ -> false
 
             if
@@ -103,7 +103,15 @@ let lexer input =
         | '(' :: tail -> Lpar :: scan (tail, Lpar) // same as above for left parenthesis
         | ')' :: tail -> Rpar :: scan (tail, Rpar) // same as above for right parenthesis
         | '=' :: tail -> Assign :: scan (tail, Assign) // same as above for assignment operator
-        | c :: tail when isAlpha c -> Sym c :: scan (tail, Sym c) // if letter then append Sym with the character to the array and call scan on the rest of the array
+        | c :: tail when isAlpha c ->
+            let rec buildVarString (strTail, char) =
+                match strTail with
+                | c :: tail when isAlpha c || isdigit c -> buildVarString (tail, char + c.ToString()) // if letter or digit then keep building the variable string
+                | _ -> (strTail, char) // else return the rest of the string and the built variable string
+
+            let (vStr, vName) = buildVarString (tail, c.ToString()) // call the buildVarString function to get the full variable name
+            Sym vName :: scan (vStr, Sym vName) // append Sym with the
+
         | c :: tail when isblank c -> scan (tail, previousToken) // if blank space then just call scan on the rest of the array
         | c :: tail when isdigit c ->
             let (iStr, iVal) = scNumber (tail, float (intVal c)) // if digit then call scNumber function to get the full number (in case of multiple digits)
@@ -159,14 +167,14 @@ let parseNeval tList =
     and AssignOpt (tList, value, var) =
         // resolve variable assignment here
         // find an equals sign to assign a variable
-        let varTobeAssigned = var.ToString()
+        let varToBeAssigned = var
 
         match tList with
         | Assign :: tail ->
             // if assign is found and a var char is passed up from the E function
             // then assign the value from another AssignOpt call which evaluates the rest of the list
             let (tLst, tval, var) = E tail // evaluate the rest of the list after the assignment operator
-            SymbolTable <- SymbolTable.Add(varTobeAssigned, tval) // add the variable and its value to the symbol table
+            SymbolTable <- SymbolTable.Add(varToBeAssigned, tval) // add the variable and its value to the symbol table
             (tLst, tval, var) // return the rest of the list , the value assigned and the variable char
         | _ -> (tList, value, var) // if no assignment found then return the list , value and variable char
 
@@ -217,15 +225,15 @@ let parseNeval tList =
 
     and NR tList = // works from the bottom up  // the actual evaluation starts here then gets returned up the chain
         match tList with
-        | Num value :: tail -> (tail, value, '_') // if number found then return the rest of the list , the number value and a placeholder char for variable
+        | Num value :: tail -> (tail, value, "_") // if number found then return the rest of the list , the number value and a placeholder char for variable
         | Sym var :: tail ->
             if not tail.IsEmpty && tail.Head = Assign then
                 // add another param to all functions to pass symbol char up the chain
                 (tail, 0.0, var) // if assignment found after variable , return tail , 0.0 value ( since value will be assigned later ) and the variable character
             else
                 // otherwise resolve variable value and return its value , with no assignment field
-                match resolveVar (var.ToString()) with // try to find the variable in the symbol table
-                | Some v -> (tail, v, '_') // if found return the tail , the variable value and placeholder char
+                match resolveVar (var) with // try to find the variable in the symbol table
+                | Some v -> (tail, v, "_") // if found return the tail , the variable value and placeholder char
                 | _ -> raise parseError
 
         | Lpar :: tail ->
