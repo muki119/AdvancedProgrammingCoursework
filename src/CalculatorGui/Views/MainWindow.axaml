@@ -16,6 +16,7 @@
         <SolidColorBrush x:Key="DarkText">#c9d1d9</SolidColorBrush>
         <SolidColorBrush x:Key="DarkTextSecondary">#8b949e</SolidColorBrush>
         <SolidColorBrush x:Key="DarkAccent">#a3cfcd</SolidColorBrush>
+        <SolidColorBrush x:Key="DarkSuccess">#56d364</SolidColorBrush>
         <SolidColorBrush x:Key="DarkError">#EC1915</SolidColorBrush>
         <SolidColorBrush x:Key="DarkButtonPrimary">#238636</SolidColorBrush>
         <SolidColorBrush x:Key="DarkButtonPrimaryHover">#2ea043</SolidColorBrush>
@@ -30,6 +31,7 @@
         <SolidColorBrush x:Key="LightText">#628281</SolidColorBrush>
         <SolidColorBrush x:Key="LightTextSecondary">#43655a</SolidColorBrush>
         <SolidColorBrush x:Key="LightAccent">#324b4a</SolidColorBrush>
+        <SolidColorBrush x:Key="LightSuccess">#238636</SolidColorBrush>
         <SolidColorBrush x:Key="LightError">#EC1915</SolidColorBrush>
         <SolidColorBrush x:Key="LightButtonPrimary">#238636</SolidColorBrush>
         <SolidColorBrush x:Key="LightButtonPrimaryHover">#2ea043</SolidColorBrush>
@@ -160,7 +162,7 @@
 
         </Menu>
 
-        <Grid Margin="30" RowDefinitions="Auto,Auto,Auto,*,Auto">
+    <Grid Margin="30" RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
         
         <!-- title sectioin -->
         <StackPanel Grid.Row="0" Margin="0,0,0,20">
@@ -215,7 +217,7 @@
                     Classes="clear" />
         </StackPanel>
 
-        <!-- output section -->
+    <!-- output section -->
         <Border Grid.Row="3" 
                 Classes="surface"
                 BorderThickness="1" 
@@ -259,6 +261,30 @@
                            Classes="error"
                            TextWrapping="Wrap"
                            VerticalAlignment="Center" />
+            </StackPanel>
+        </Border>
+
+        <!-- plotting section -->
+        <Border Grid.Row="5"
+                Classes="surface"
+                BorderThickness="1"
+                CornerRadius="8"
+                Padding="20"
+                Margin="0,15,0,0">
+            <StackPanel Spacing="12">
+                <TextBlock Text="Polynomial Plotting" 
+                           FontSize="16" 
+                           FontWeight="SemiBold"
+                           Classes="title"/>
+                <TextBlock Text="Plot polynomial functions with grid lines and axis labels" 
+                           FontSize="12" 
+                           Classes="label"/>
+                <Button x:Name="plotButton" 
+                        Content="Open Plot Window" 
+                        Width="180" 
+                        Height="40"
+                        FontSize="14"
+                        HorizontalAlignment="Left"/>
             </StackPanel>
         </Border>
 

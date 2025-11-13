@@ -267,6 +267,19 @@ let rec printTList (lst: list<terminal>) : list<string> =
         Console.Write("EOL\n")
         []
 
+// Helper functions for C# interop
+let setVariable (name: string) (value: float) : unit =
+    SymbolTable <- SymbolTable.Add(name, value)
+
+let clearVariables () : unit =
+    SymbolTable <- Map.empty<string, float>
+
+let evaluateWithX (expr: string) (xValue: float) : float =
+    SymbolTable <- SymbolTable.Add("x", xValue)
+    let tokens = lexer expr
+    let (_, result, _) = parseNeval tokens
+    result
+
 
 // [<EntryPoint>]
 // let main argv  =

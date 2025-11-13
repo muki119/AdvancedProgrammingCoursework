@@ -6,19 +6,15 @@ namespace CalculatorGui;
 
 sealed class Program
 {
-    // Initialization code. Don't use any Avalonia, third-party APIs or any
-    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
-    // yet and stuff might break.
     [STAThread]
-    public static void Main(string[] args)
+    public static void Main(string[] args) // entry point for application. initializes Avalonia framework and starts the GUI
     {
-        var testCall = Interpreter.testCall;
+        var testCall = Interpreter.testCall; // test call to verify F# library connection
         BuildAvaloniaApp()
             .StartWithClassicDesktopLifetime(args);
     }
 
-    // Avalonia configuration, don't remove; also used by visual designer.
-    public static AppBuilder BuildAvaloniaApp()
+    public static AppBuilder BuildAvaloniaApp() // configures Avalonia app builder with platform detection and font settings
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
