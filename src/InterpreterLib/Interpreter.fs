@@ -68,52 +68,18 @@ let rec scNumber (iStr, iVal: float) = // recursive function to scan integer val
     | _ -> (iStr, iVal) // return the rest of the string and the integer value when no more digits found
 
 let lexer input =
-    let rec scan (input, previousToken) = // recursive function (rec keyword indicates its recursive)
-        let isOpperator token =
-            match token with
-            | Add
-            | Sub
-            | Mul
-            | Div
-            | Exp
-            | Lpar
-            | Rpar
-            | Assign
-            | Mod -> true
-            | _ -> false
-
+    let rec scan (input) = // recursive function (rec keyword indicates its recursive)
         match input with // match with the following
         | [] -> [] // empty array - add nothing
-        | '+' :: tail -> Add :: scan (tail, Add) // if plus then  -> append "Add" operator to array and call scan function with the rest of the array
-        | '-' :: tail ->
-            let previousTokenIsOperator = isOpperator previousToken || previousToken = None // check if previous token is an operator or the start of the string
-
-            let nextIsValue =
-                match tail with // looks at head of the tail to see if its a digit
-                | [] -> false
-                | c :: _ when isdigit c || c = '-' || isAlpha c -> true // also check for negative sign to allow for multiple negative signs
-                | _ -> false
-
-            if
-                (not previousTokenIsOperator) // if previous token is not an operator
-                && nextIsValue // and the next character is a digit
-            then
-                Sub :: (scan (tail, Sub)) // treat '-' as subtraction operator; continue scanning from tail, previousToken = Sub
-            else if // append Num with negative value to array and call scan on the rest of the array
-                not tail.IsEmpty && isAlpha tail.Head
-            then
-                Num -1.0 :: Mul :: scan (tail, Num -1.0)
-            else
-                let (iStr, iVal) = scNumber (tail, 0.0) // else treat as negative number
-                Num -iVal :: scan (iStr, Num -iVal) // treat as multiplication by -1 if next character is a letter (variable)
-
-        | '*' :: tail -> Mul :: scan (tail, Mul) // same as above for multiplication
-        | '^' :: tail -> Exp :: scan (tail, Exp) // same as above for exponentiation
-        | '%' :: tail -> Mod :: scan (tail, Mod) // same as above for modulus
-        | '/' :: tail -> Div :: scan (tail, Div) // same as above for division
-        | '(' :: tail -> Lpar :: scan (tail, Lpar) // same as above for left parenthesis
-        | ')' :: tail -> Rpar :: scan (tail, Rpar) // same as above for right parenthesis
-        | '=' :: tail -> Assign :: scan (tail, Assign) // same as above for assignment operator
+        | '+' :: tail -> Add :: scan (tail) // if plus then  -> append "Add" operator to array and call scan function with the rest of the array
+        | '-' :: tail -> Sub :: scan (tail) // same as above for subtraction
+        | '*' :: tail -> Mul :: scan (tail) // same as above for multiplication
+        | '^' :: tail -> Exp :: scan (tail) // same as above for exponentiation
+        | '%' :: tail -> Mod :: scan (tail) // same as above for modulus
+        | '/' :: tail -> Div :: scan (tail) // same as above for division
+        | '(' :: tail -> Lpar :: scan (tail) // same as above for left parenthesis
+        | ')' :: tail -> Rpar :: scan (tail) // same as above for right parenthesis
+        | '=' :: tail -> Assign :: scan (tail) // same as above for assignment operator
         | c :: tail when isAlpha c -> // if letter then start building variable string -- variable has to start with a letter - much like programming languages
             let rec buildVarString (strTail, char) =
                 match strTail with
@@ -121,15 +87,15 @@ let lexer input =
                 | _ -> (strTail, char) // else return the rest of the string and the built variable string
 
             let (vStr, vName) = buildVarString (tail, c.ToString()) // call the buildVarString function to get the full variable name
-            Sym vName :: scan (vStr, Sym vName) // append Sym with the
+            Sym vName :: scan (vStr) // append Sym with the
 
-        | c :: tail when isblank c -> scan (tail, previousToken) // if blank space then just call scan on the rest of the array
+        | c :: tail when isblank c -> scan (tail) // if blank space then just call scan on the rest of the array
         | c :: tail when isdigit c ->
             let (iStr, iVal) = scNumber (tail, float (intVal c)) // if digit then call scNumber function to get the full number (in case of multiple digits)
-            Num iVal :: scan (iStr, Num iVal) // append Num with the value to the array and call scan on the rest of the array
+            Num iVal :: scan (iStr) // append Num with the value to the array and call scan on the rest of the array
         | _ -> raise lexError // raise lexer error if none of the above match
 
-    scan (str2lst input, None) // call scan function on the input string converted to a list of characters
+    scan (str2lst input) // call scan function on the input string converted to a list of characters
 
 let getInputString () : string =
     Console.Write("Enter an expression: ")
@@ -236,6 +202,9 @@ let parseNeval tList =
 
     and NR tList = // works from the bottom up  // the actual evaluation starts here then gets returned up the chain
         match tList with
+        | Sub :: tail ->
+            let (tLst, tval, var) = NR tail // if a negative number is found , call NR again on the rest of the list
+            (tLst, -tval, var) // return the rest of the list ,
         | Num value :: tail -> (tail, value, "_") // if number found then return the rest of the list , the number value and a placeholder char for variable
         | Sym var :: tail ->
             if not tail.IsEmpty && tail.Head = Assign then
@@ -271,8 +240,7 @@ let rec printTList (lst: list<terminal>) : list<string> =
 let setVariable (name: string) (value: float) : unit =
     SymbolTable <- SymbolTable.Add(name, value)
 
-let clearVariables () : unit =
-    SymbolTable <- Map.empty<string, float>
+let clearVariables () : unit = SymbolTable <- Map.empty<string, float>
 
 let evaluateWithX (expr: string) (xValue: float) : float =
     SymbolTable <- SymbolTable.Add("x", xValue)
