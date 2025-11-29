@@ -86,7 +86,7 @@ public partial class MainWindow : Window
         try
         {
             var tuple = Interpreter.parseNeval(Interpreter.lexer(input)).ToValueTuple(); // lex and parse input then evaluate
-            return EvaluationResult.CreateSuccess(tuple.Item2.ToString());
+            return EvaluationResult.CreateSuccess(Interpreter.NumberToString(tuple.Item2));
         }
         catch (Exception ex) { return EvaluationResult.CreateError(ex.Message); }
     }

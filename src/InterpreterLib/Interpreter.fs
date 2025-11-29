@@ -6,6 +6,9 @@ module InterpreterLib.Interpreter
 // Reference: Peter Sestoft, Grammars and parsing with F#, Tech. Report
 open System
 
+type Number =
+    | Int of int
+    | Float of float
 
 type terminal =
     | Add
@@ -18,7 +21,7 @@ type terminal =
     | Mod
     | Assign
     | None
-    | Num of float
+    | Num of Number
     | Sym of string
 
 
@@ -27,9 +30,31 @@ let isblank c = System.Char.IsWhiteSpace c // checks if is blank
 let isdigit c = System.Char.IsDigit c // checks if its a number (obviously)
 
 let isAlpha c = System.Char.IsLetter c // checks if its a letter
+
+let isZero num =
+    match num with
+    | Int i when i = 0 -> true
+    | Float f when f = 0.0 -> true
+    | _ -> false
+
+let toNumberFloat (num: float) : Number = Float(num) 
+let NumberToString (num:Number) : string =
+    match num with
+        | Int i -> i.ToString()
+        | Float f  -> f.ToString()
+
+let toPrimativeFloat (num: Number) : float =
+    match num with
+    | Int i -> float i
+    | Float f -> f
+
+
 let lexError = System.Exception("Lexer error") // error declaration
 let intVal (c: char) = (int) ((int) c - (int) '0') // fast way to turn string to number  - number representation of number minus acsii number representation of 0
 let parseError = System.Exception("Parser error") // error declaration
+
+let modulusError =
+    System.Exception("Cannot perform modulus operation between non-integer values") // error declaration
 
 let zeroDivisionError = System.Exception("Cannot Divide by zero") // error declaration
 
@@ -43,18 +68,24 @@ let removeWhitespace (input: string) : string =
 
 let str2lst s = [ for c in removeWhitespace (s) -> c ] // simple function to convert string to list of characters -- remove whitespace before processing
 
-let mutable SymbolTable = Map.empty<string, float> // empty map for variables
+let mutable SymbolTable = Map.empty<string, Number> // empty map for variables
 
-let resolveVar (name: string) : float option =
-    let value = Map.tryFind name SymbolTable
-
-    match value with
+let resolveVar (name: string) =
+    match Map.tryFind name SymbolTable with
     | Some v -> Some v
     | _ -> raise (variableNotFoundError name)
 
-let rec scNumber (iStr, iVal: float) = // recursive function to scan integer values
+
+// potentially turned into a generic so it can return int or float
+// or hold a parameter to indicate which type to return
+let rec scNumber (iStr, iVal: Number) = // recursive function to scan integer values
     match iStr with
-    | c :: tail when isdigit c -> scNumber (tail, 10.0 * iVal + (float (intVal c))) // if digit then recursively call function , passing the rest of the number string and updating the integer value accordingly
+    // when is interger - remain an int value - and return an int
+    // when is dot - change to float value andd return a float
+    | c :: tail when isdigit c ->
+        match iVal with
+        | Float f -> scNumber (tail, Float(f * 10.0 + float (intVal c))) // if digit then recursively call function , passing the rest of the number string and updating the float value accordingly
+        | Int i -> scNumber (tail, Int(10 * i + (intVal c))) // if digit then recursively call function , passing the rest of the number string and updating the integer value accordingly
     | c :: tail when c = '.' -> // if dot then return rest of string and float value
         let rec scFloat (fTail, fValue: float, decimalPlace: float) =
             match fTail with
@@ -63,8 +94,13 @@ let rec scNumber (iStr, iVal: float) = // recursive function to scan integer val
                 scFloat (tail, fValue + (float (intVal c) / decimalPlace), decimalPlace * 10.0)
             | _ -> (fTail, fValue)
 
-        let (fStr, fVal) = scFloat (tail, float iVal, 10.0)
-        (fStr, fVal) // return the rest of the string and the float value
+        let initialValue =
+            match iVal with
+            | Int i -> float i
+            | Float f -> f
+
+        let (fStr, fVal) = scFloat (tail, initialValue, 10.0)
+        (fStr, Float fVal) // return the rest of the string and the float value
     | _ -> (iStr, iVal) // return the rest of the string and the integer value when no more digits found
 
 let lexer input =
@@ -91,7 +127,8 @@ let lexer input =
 
         | c :: tail when isblank c -> scan (tail) // if blank space then just call scan on the rest of the array
         | c :: tail when isdigit c ->
-            let (iStr, iVal) = scNumber (tail, float (intVal c)) // if digit then call scNumber function to get the full number (in case of multiple digits)
+            let (iStr, iVal) = scNumber (tail, Int(intVal c)) // if digit then call scNumber function to get the full number (in case of multiple digits)
+            // check number type and save it in
             Num iVal :: scan (iStr) // append Num with the value to the array and call scan on the rest of the array
         | _ -> raise lexError // raise lexer error if none of the above match
 
@@ -107,6 +144,13 @@ let getInputString () : string =
 // <T>        ::= <NR> <Topt>
 // <Topt>     ::= "*" <NR> <Topt> | "/" <NR> <Topt> | <empty>
 // <NR>       ::= "Num" <value> | "(" <E> ")"
+
+let typeCoerce (a: Number) (b: Number) : (Number * Number) = // turns both numbers into floats unless both are integers
+    match (a, b) with
+    | (Int i, Int j) -> (Int i, Int j)
+    | (Int i, Float f) -> (Float(float i), Float f)
+    | (Float f, Int j) -> (Float f, Float(float j))
+    | (Float f, Float g) -> (Float f, Float g)
 
 let parser tList = // recursive descent parser implementation -- works in BIDMAS order from bottom up
     let rec E tList = (T >> Eopt) tList // >> is forward function composition operator: let inline (>>) f g x = g(f(x)) // performs a recursive descent parse
@@ -162,10 +206,18 @@ let parseNeval tList =
         match tList with
         | Add :: tail ->
             let (tLst, tval, var) = T tail // if opperator is addition then call T on the rest of the list which goes to the bottom until a number is found
-            Eopt(tLst, value + tval, var) // then recursively call Eopt again with the updated value
+            let (value, tval) = typeCoerce value tval
+
+            match (value, tval) with
+            | (Int v, Int tv) -> Eopt(tLst, Int(v + tv), var) // then recursively call Eopt again with the updated value
+            | (Float v, Float tv) -> Eopt(tLst, Float(v + tv), var) // then recursively call Eopt again with the updated value
         | Sub :: tail ->
             let (tLst, tval, var) = T tail // will basically call the rest of the functions until a number is found - will also do all the multiplication and division first due to the order of the calls (Bidmas)
-            Eopt(tLst, value - tval, var)
+            let (value, tval) = typeCoerce value tval
+
+            match (value, tval) with
+            | (Int v, Int tv) -> Eopt(tLst, Int(v - tv), var)
+            | (Float v, Float tv) -> Eopt(tLst, Float(v - tv), var)
         | _ -> (tList, value, var) // if no operator found then return the list and the value
 
     and T tList = (IndicesOpt >> Topt) tList
@@ -174,21 +226,31 @@ let parseNeval tList =
         match tList with
         | Mul :: tail ->
             let (tLst, tval, var) = IndicesOpt tail
-            Topt(tLst, value * tval, var)
+            let (value, tval) = typeCoerce value tval
+
+            match (value, tval) with
+            | (Int v, Int tv) -> Topt(tLst, Int(v * tv), var)
+            | (Float v, Float tv) -> Topt(tLst, Float(v * tv), var)
         | Div :: tail ->
             let (tLst, tval, var) = IndicesOpt tail
+            let (value, tval) = typeCoerce value tval
 
-            if tval = 0.0 then
+            if isZero tval then
                 raise zeroDivisionError
             else
-                Topt(tLst, value / tval, var)
+                match (value, tval) with
+                | (Int v, Int tv) -> Topt(tLst, Int(v / tv), var)
+                | (Float v, Float tv) -> Topt(tLst, Float(v / tv), var)
         | Mod :: tail ->
             let (tLst, tval, var) = IndicesOpt tail
+            let (value, tval) = typeCoerce value tval
 
-            if tval = 0.0 then
+            if isZero tval then
                 raise zeroDivisionError
             else
-                Topt(tLst, value % tval, var)
+                match (value, tval) with
+                | (Int v, Int tv) -> Topt(tLst, Int(v % tv), var) // because modulus only works on integers
+                | _ -> raise modulusError
         | _ -> (tList, value, var)
 
     and IndicesOpt tList = (NR >> Iopt) tList // to check for indicies
@@ -197,19 +259,27 @@ let parseNeval tList =
         match tList with
         | Exp :: tail ->
             let (tLst, tval, var) = NR tail
-            Iopt(tLst, value ** tval, var)
+            let (value, tval) = typeCoerce value tval
+
+            match (value, tval) with
+            | (Int v, Int tv) -> Iopt(tLst, Int(pown v tv), var)
+            | (Float v, Float tv) -> Iopt(tLst, Float((v ** tv)), var)
+
         | _ -> (tList, value, var)
 
     and NR tList = // works from the bottom up  // the actual evaluation starts here then gets returned up the chain
         match tList with
         | Sub :: tail ->
             let (tLst, tval, var) = NR tail // if a negative number is found , call NR again on the rest of the list
-            (tLst, -tval, var) // return the rest of the list ,
+
+            match tval with
+            | Int v -> (tLst, Int(-v), var) // return the rest of the list , negative value and variable char
+            | Float v -> (tLst, Float(-v), var) // return the rest of the list ,
         | Num value :: tail -> (tail, value, "_") // if number found then return the rest of the list , the number value and a placeholder char for variable
         | Sym var :: tail ->
             if not tail.IsEmpty && tail.Head = Assign then
                 // add another param to all functions to pass symbol char up the chain
-                (tail, 0.0, var) // if assignment found after variable , return tail , 0.0 value ( since value will be assigned later ) and the variable character
+                (tail, Int(0), var) // if assignment found after variable , return tail , 0 value ( since value will be assigned later ) and the variable character
             else
                 // otherwise resolve variable value and return its value , with no assignment field
                 match resolveVar (var) with // try to find the variable in the symbol table
@@ -237,16 +307,21 @@ let rec printTList (lst: list<terminal>) : list<string> =
         []
 
 // Helper functions for C# interop
-let setVariable (name: string) (value: float) : unit =
+let setVariable (name: string, value: Number) : unit =
     SymbolTable <- SymbolTable.Add(name, value)
 
-let clearVariables () : unit = SymbolTable <- Map.empty<string, float>
+let clearVariables () : unit =
+    SymbolTable <- Map.empty<string, Number>
 
 let evaluateWithX (expr: string) (xValue: float) : float =
-    SymbolTable <- SymbolTable.Add("x", xValue)
+    SymbolTable <- SymbolTable.Add("x", Float xValue)
     let tokens = lexer expr
     let (_, result, _) = parseNeval tokens
-    result
+
+    match result with
+    | Int i -> float i
+    | Float f -> f
+
 
 
 // [<EntryPoint>]

@@ -175,10 +175,12 @@ public partial class PlotWindow : Window
 
             for (double x = xMin; x <= xMax + 1e-9; x += dx) // sample the expression by evaluating the PARSED tokens at different x values. this avoids re.lexing and re.parsing on every iteration
             {
-                Interpreter.setVariable("x", x); // bind the current x value to the interpreter's variable context
+                // set x to Number.Float for floating point evaluation
+                Interpreter.setVariable("x", Interpreter.toNumberFloat(x)); // bind the current x value to the interpreter's variable context
                 var result = Interpreter.parseNeval(tokens);
-                var y = result.Item2;
-
+                var output = result.Item2;
+                var y = Interpreter.toPrimativeFloat(output);// convert result to double for plotting
+                
                 if (double.IsNaN(y) || double.IsInfinity(y)) // check for invalid results
                     continue; // skip invalid points. eg division by zero
 
