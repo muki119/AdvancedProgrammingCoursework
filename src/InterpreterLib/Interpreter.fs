@@ -61,12 +61,10 @@ let zeroDivisionError = System.Exception("Cannot Divide by zero") // error decla
 let variableNotFoundError (varName: string) =
     System.Exception(sprintf "Variable `%s` not found" varName)
 
-let testCall = Console.WriteLine "F# Connected"
-
 let removeWhitespace (input: string) : string =
-    String.Concat(input.ToCharArray() |> Array.filter (fun c -> not (isblank c))) // turns string into char array |> output of the 'ToCharArray' function is piped to filter function which removes all that is blank , then concatenated back into a string
+    String.Concat(input.ToCharArray() |> Array.filter (fun c -> not (isblank c))) // turns string into char array to output of the 'ToCharArray' function is piped to filter function which removes all that is blank , then concatenated back into a string
 
-let str2lst s = [ for c in removeWhitespace (s) -> c ] // simple function to convert string to list of characters -- remove whitespace before processing
+let str2lst s = [ for c in removeWhitespace (s) -> c ] // simple function to convert string to list of characters, remove whitespace before processing
 
 let mutable SymbolTable = Map.empty<string, Number> // empty map for variables
 
@@ -133,10 +131,6 @@ let lexer input =
         | _ -> raise lexError // raise lexer error if none of the above match
 
     scan (str2lst input) // call scan function on the input string converted to a list of characters
-
-let getInputString () : string =
-    Console.Write("Enter an expression: ")
-    Console.ReadLine()
 
 // Grammar in BNF:
 // <E>        ::= <T> <Eopt>
@@ -296,16 +290,6 @@ let parseNeval tList =
 
     A tList
 
-let rec printTList (lst: list<terminal>) : list<string> =
-    match lst with
-    | head :: tail ->
-        Console.Write("{0} ", head.ToString())
-        printTList tail
-
-    | [] ->
-        Console.Write("EOL\n")
-        []
-
 // Helper functions for C# interop
 let setVariable (name: string, value: Number) : unit =
     SymbolTable <- SymbolTable.Add(name, value)
@@ -321,17 +305,3 @@ let evaluateWithX (expr: string) (xValue: float) : float =
     match result with
     | Int i -> float i
     | Float f -> f
-
-
-
-// [<EntryPoint>]
-// let main argv  =
-//     Console.WriteLine("Simple Interpreter")
-//     let input:string = getInputString()
-//     let oList = lexer input // run lexer function
-//     let sList = printTList oList; // print the list
-//     let pList = printTList (parser oList)
-//     let Out = parseNeval oList
-//     Console.WriteLine()
-//     Console.WriteLine("Result = {0}", snd Out)
-//     0
