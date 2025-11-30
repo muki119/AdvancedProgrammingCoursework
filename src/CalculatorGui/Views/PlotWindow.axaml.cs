@@ -12,7 +12,7 @@ namespace CalculatorGui.Views;
 
 public partial class PlotWindow : Window
 {
-    private record PlotControls( // encapsulates all plot control references from AXAML markup
+    private record PlotControls(
         TextBox? CoeffsBox,
         TextBox? XMinBox,
         TextBox? XMaxBox,
@@ -23,10 +23,10 @@ public partial class PlotWindow : Window
         TextBlock? PlotError
     );
 
-    private readonly PlotControls _controls; // stores references to plot UI controls
-    private bool _isDarkTheme = true; // tracks current theme state. defaults to dark mode
+    private readonly PlotControls _controls;
+    private bool _isDarkTheme = true;
 
-    public PlotWindow() // initializes plot window and its components. sets up controls. event handlers and theme
+    public PlotWindow()
     {
         InitializeComponent();
         _controls = InitializeControls();
@@ -34,13 +34,13 @@ public partial class PlotWindow : Window
         ApplyTheme(_isDarkTheme);
     }
 
-    public void SetTheme(bool isDark) // sets theme for plot window. called from main window to sync theme
+    public void SetTheme(bool isDark)
     {
         _isDarkTheme = isDark;
         ApplyTheme(isDark);
     }
 
-    private PlotControls InitializeControls() => // retrieves plot control references from AXAML markup using FindControl
+    private PlotControls InitializeControls() =>
         new(
             CoeffsBox: this.FindControl<TextBox>("coeffsBox"),
             XMinBox: this.FindControl<TextBox>("xMinBox"),
@@ -52,7 +52,7 @@ public partial class PlotWindow : Window
             PlotError: this.FindControl<TextBlock>("plotError")
         );
 
-    private void SetupEventHandlers() // attaches event handlers to plot button and clear button
+    private void SetupEventHandlers()
     {
         if (_controls.PlotButton != null)
             _controls.PlotButton.Click += (_, _) => HandlePlot();
@@ -61,232 +61,189 @@ public partial class PlotWindow : Window
             _controls.ClearButton.Click += (_, _) => HandleClear();
     }
 
-    private void ApplyTheme(bool isDark) // applies theme to window by updating resource dictionary with light or dark theme resources
-    {
-        var prefix = isDark ? "Dark" : "Light"; // determine prefix based on theme mode
-        var mappings = new[] // maps resource names to their suffixes for theme switching
-        {
-            ("WindowBackground", $"{prefix}Background"),
-            ("SurfaceBackground", $"{prefix}Surface"),
-            ("BorderColor", $"{prefix}Border"),
-            ("TextPrimary", $"{prefix}Text"),
-            ("TextSecondary", $"{prefix}TextSecondary"),
-            ("AccentColor", $"{prefix}Accent"),
-            ("SuccessColor", $"{prefix}Success"),
-            ("ErrorColor", $"{prefix}Error"),
-            ("ButtonPrimary", $"{prefix}ButtonPrimary"),
-            ("ButtonPrimaryHover", $"{prefix}ButtonPrimaryHover"),
-            ("ButtonSecondary", $"{prefix}ButtonSecondary"),
-            ("ButtonSecondaryHover", $"{prefix}ButtonSecondaryHover")
-        };
+    private void ApplyTheme(bool isDark) => ThemeResourceHelper.Apply(Resources, isDark);
 
-        foreach (var (target, source) in mappings) // iterate through mappings and update resources
-            if (Resources.TryGetResource(source, null, out var r))
-                Resources[target] = r;
-    }
-
-    private void HandlePlot() // handles plot button click. validates input. parses expression or coefficients. samples points and draws plot
+    private void HandlePlot()
     {
-        if (_controls.PlotCanvas == null || _controls.PlotError == null || // check if all required controls are available
-            _controls.CoeffsBox == null || _controls.XMinBox == null ||
-            _controls.XMaxBox == null || _controls.DxBox == null)
+        if (_controls is not
+            {
+                PlotCanvas: { } canvas,
+                PlotError: { } error,
+                CoeffsBox: { } coeffsBox,
+                XMinBox: { } xMinBox,
+                XMaxBox: { } xMaxBox,
+                DxBox: { } dxBox
+            })
             return;
 
-        _controls.PlotError.Text = string.Empty; // clear previous error message
-        var input = (_controls.CoeffsBox.Text ?? string.Empty).Trim(); // get input text and trim whitespace
+        error.Text = string.Empty;
+        var input = (coeffsBox.Text ?? string.Empty).Trim();
 
-        if (string.IsNullOrWhiteSpace(input)) // validate input is not empty
+        if (string.IsNullOrWhiteSpace(input))
         {
-            _controls.PlotError.Text = "Please enter an expression or coefficients.";
+            error.Text = "Please enter an expression or coefficients.";
             return;
         }
 
-        if (!TryParseDouble(_controls.XMinBox.Text, out var xMin) || // parse range and step parameters
-            !TryParseDouble(_controls.XMaxBox.Text, out var xMax) ||
-            !TryParseDouble(_controls.DxBox.Text, out var dx))
+        if (!TryParseDouble(xMinBox.Text, out var xMin) ||
+            !TryParseDouble(xMaxBox.Text, out var xMax) ||
+            !TryParseDouble(dxBox.Text, out var dx))
         {
-            _controls.PlotError.Text = "Invalid range or Δx.";
+            error.Text = "Invalid range or Δx.";
             return;
         }
 
-        if (dx <= 0 || xMax <= xMin) // validate range and step are valid
+        if (dx <= 0 || xMax <= xMin)
         {
-            _controls.PlotError.Text = "Require xMax > xMin and Δx > 0.";
+            error.Text = "Require xMax > xMin and Δx > 0.";
             return;
         }
 
         List<(double x, double y)> samples;
+        if (!TryPlotExpression(input, xMin, xMax, dx, out samples, out var errorMsg))
+        {
+            if (TryParseCoefficients(input, out var coeffs))
+            {
+                samples = SamplePolynomial(coeffs, xMin, xMax, dx).ToList();
+            }
+            else
+            {
+                var msg = "Invalid input. ";
+                if (!string.IsNullOrEmpty(errorMsg))
+                    msg += errorMsg + " ";
+                msg += "Use expression (e.g., x^2 + 3*x + 1) or coefficients (1, 3, 1).";
+                error.Text = msg;
+                return;
+            }
+        }
 
-        if (TryPlotExpression(input, xMin, xMax, dx, out samples, out var errorMsg)) // try parsing as expression first. e.g.. "x^2 + 3*x + 1"
+        if (samples.Count < 2)
         {
-            // successfully plotted as expression
-        }
-        else if (TryParseCoefficients(input, out var coeffs)) // fall back to coefficient parsing. e.g.. "1. 3. 1"
-        {
-            samples = SamplePolynomial(coeffs, xMin, xMax, dx).ToList();
-        }
-        else
-        {
-            var msg = "Invalid input. "; // build error message with details
-            if (!string.IsNullOrEmpty(errorMsg))
-                msg += errorMsg + " ";
-            msg += "Use expression (e.g., x^2 + 3*x + 1) or coefficients (1, 3, 1).";
-            _controls.PlotError.Text = msg;
+            error.Text = "Not enough valid points to plot. Check your expression.";
             return;
         }
 
-        if (samples.Count < 2) // check if enough points were sampled for plotting
-        {
-            _controls.PlotError.Text = "Not enough valid points to plot. Check your expression.";
-            return;
-        }
-
-        DrawPlot(_controls.PlotCanvas, samples, xMin, xMax); // draw the plot on canvas
+        DrawPlot(canvas, samples, xMin, xMax);
     }
 
-    private void HandleClear() // handles clear button click. clears canvas and error message
+    private void HandleClear()
     {
-        if (_controls.PlotCanvas != null)
-            _controls.PlotCanvas.Children.Clear(); // remove all children from canvas
-
-        if (_controls.PlotError != null)
-            _controls.PlotError.Text = string.Empty; // clear error text
+        _controls.PlotCanvas?.Children.Clear();
+        if (_controls.PlotError is { } error)
+            error.Text = string.Empty;
     }
 
-    private static bool TryParseDouble(string? s, out double value) => // tries to parse string to double using invariant culture. returns true if successful
+    private static bool TryParseDouble(string? s, out double value) =>
         double.TryParse(s, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out value);
 
-    private static bool TryPlotExpression(string expr, double xMin, double xMax, double dx, // tries to plot expression using F# interpreter. e.g.. "x^2 + 3*x + 1". lex and parse once. evaluate multiple times (loop.invariant code motion optimization)
+    private static bool TryPlotExpression(string expr, double xMin, double xMax, double dx,
         out List<(double x, double y)> samples, out string errorMsg)
     {
-        samples = new List<(double x, double y)>(); // initialize empty list for samples
-        errorMsg = string.Empty; // initialize empty error message
+        samples = new List<(double x, double y)>();
+        errorMsg = string.Empty;
 
-        if (string.IsNullOrWhiteSpace(expr)) // check if expression is empty
-            return false;
-
-        if (!expr.ToLower().Contains('x')) // check if expression contains 'x' variable
+        if (string.IsNullOrWhiteSpace(expr) || expr.IndexOf('x', StringComparison.OrdinalIgnoreCase) < 0)
             return false;
 
         try
         {
-            Interpreter.clearVariables(); // clear any previous variable bindings before plotting
-            var tokens = Interpreter.lexer(expr); // lex and parse expression once outside the loop. common sub.expression elimination optimization
+            Interpreter.clearVariables();
+            var tokens = Interpreter.lexer(expr);
 
-            for (double x = xMin; x <= xMax + 1e-9; x += dx) // sample the expression by evaluating the PARSED tokens at different x values. this avoids re.lexing and re.parsing on every iteration
+            for (double x = xMin; x <= xMax + 1e-9; x += dx)
             {
-                // set x to Number.Float for floating point evaluation
-                Interpreter.setVariable("x", Interpreter.toNumberFloat(x)); // bind the current x value to the interpreter's variable context
-                var result = Interpreter.parseNeval(tokens);
-                var output = result.Item2;
-                var y = Interpreter.toPrimativeFloat(output);// convert result to double for plotting
-                
-                if (double.IsNaN(y) || double.IsInfinity(y)) // check for invalid results
-                    continue; // skip invalid points. eg division by zero
-
-                samples.Add((x, y)); // add valid point to samples list
+                Interpreter.setVariable("x", Interpreter.toNumberFloat(x));
+                var y = Interpreter.toPrimativeFloat(Interpreter.parseNeval(tokens).Item2);
+                if (double.IsNaN(y) || double.IsInfinity(y)) continue;
+                samples.Add((x, y));
             }
 
-            if (samples.Count == 0) // check if any valid points were sampled
+            if (samples.Count == 0)
             {
                 errorMsg = "All points resulted in invalid values (NaN/Infinity).";
                 return false;
             }
 
-            return samples.Count > 0;
+            return true;
         }
         catch (Exception ex)
         {
-            errorMsg = $"Expression error: {ex.Message}"; // capture exception message for display
+            errorMsg = $"Expression error: {ex.Message}";
             samples.Clear();
             return false;
         }
     }
 
-    private static bool TryParseCoefficients(string input, out List<double> coeffs) // tries to parse comma.separated coefficients. e.g.. "1. 3. 1" for x^2 + 3x + 1
+    private static bool TryParseCoefficients(string input, out List<double> coeffs)
     {
-        coeffs = new List<double>(); // initialize empty list for coefficients
-        var parts = input.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries); // split input by comma or semicolon
-        foreach (var p in parts) // iterate through each part and try to parse as double
+        coeffs = new List<double>();
+        foreach (var p in input.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries))
         {
-            if (!double.TryParse(p.Trim(), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var d))
-                return false; // return false if parsing fails
-            coeffs.Add(d); // add parsed coefficient to list
+            if (!double.TryParse(p.Trim(), NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var value))
+                return false;
+            coeffs.Add(value);
         }
-        return coeffs.Count > 0; // return true if at least one coefficient was parsed
+        return coeffs.Count > 0;
     }
 
-    private static IEnumerable<(double x, double y)> SamplePolynomial(IReadOnlyList<double> coeffs, double xMin, double xMax, double dx) // samples polynomial using Horner's method. reduces n multiplications to n.1. example: x^2 + 3x + 1 = (1*x + 3)*x + 1 (2 muls instead of 3)
+    private static IEnumerable<(double x, double y)> SamplePolynomial(IReadOnlyList<double> coeffs, double xMin, double xMax, double dx)
     {
-        for (double x = xMin; x <= xMax + 1e-9; x += dx) // iterate through x range with step dx
+        for (double x = xMin; x <= xMax + 1e-9; x += dx)
         {
             double y = 0;
-            foreach (var a in coeffs) // horners method: O(n) instead of O(n²) for naive evaluation
-                y = y * x + a;
-            yield return (x, y); // return sampled point
+            foreach (var a in coeffs)
+                y = y * x + a; // Horner's method
+            yield return (x, y);
         }
     }
 
-    private void DrawPlot(Canvas canvas, List<(double x, double y)> points, double xMin, double xMax) // draws plot on canvas. calculates scaling. draws grid. axes. labels and polynomial curve
+    private void DrawPlot(Canvas canvas, List<(double x, double y)> points, double xMin, double xMax)
     {
-        canvas.Children.Clear(); // clear any existing children from canvas
+        canvas.Children.Clear();
 
-        var w = canvas.Bounds.Width > 0 ? canvas.Bounds.Width : 800; // pre.compute canvas dimensions. common sub.expression elimination
+        var w = canvas.Bounds.Width > 0 ? canvas.Bounds.Width : 800;
         var h = canvas.Bounds.Height > 0 ? canvas.Bounds.Height : 500;
+        var xRange = xMax - xMin;
 
-        var xRange = xMax - xMin; // pre.compute x range. loop.invariant code motion
-
-        var yMin = points.Min(p => p.y); // compute y range from data
+        var yMin = points.Min(p => p.y);
         var yMax = points.Max(p => p.y);
-        var yRange = yMax - yMin;
-
-
-
-        var yPad = yRange * 0.1; // apply padding. constant folding
+        var yPad = (yMax - yMin) * 0.1;
         yMin -= yPad;
         yMax += yPad;
-        yRange = yMax - yMin;
+        var yRange = yMax - yMin;
 
-        // use uniform scaling. maintain 1:1 aspect ratio so slopes are visually accurate. 45 degree line has slope 1
-        var scale = Math.Min(w / xRange, h / yRange); // choose smaller scale to fit both x and y ranges
+        var scale = Math.Min(w / xRange, h / yRange);
+        var xOffset = (w - xRange * scale) / 2;
+        var yOffset = (h - yRange * scale) / 2;
 
-        var xScale = scale; // uniform scale for x axis
-        var yScale = scale; // uniform scale for y axis. same as x for 1:1 aspect ratio
+        double MapX(double x) => xOffset + (x - xMin) * scale;
+        double MapY(double y) => h - yOffset - (y - yMin) * scale;
 
-        // center the plot if one dimension has extra space
-        var xOffset = (w - xRange * xScale) / 2; // horizontal centering offset
-        var yOffset = (h - yRange * yScale) / 2; // vertical centering offset
+        DrawGrid(canvas, w, h, xMin, xMax, yMin, yMax, MapX, MapY);
+        DrawAxes(canvas, w, h, xMin, xMax, yMin, yMax, MapX, MapY);
+        DrawAxisLabels(canvas, w, h, xMin, xMax, yMin, yMax, MapX, MapY);
 
-        double MapX(double x) => xOffset + (x - xMin) * xScale; // optimized mapping functions with centering
-        double MapY(double y) => h - yOffset - (y - yMin) * yScale;
-
-        DrawGrid(canvas, w, h, xMin, xMax, yMin, yMax, MapX, MapY); // draw grid lines
-
-        DrawAxes(canvas, w, h, xMin, xMax, yMin, yMax, MapX, MapY); // draw coordinate axes
-
-        DrawAxisLabels(canvas, w, h, xMin, xMax, yMin, yMax, MapX, MapY); // draw axis labels
-
-        var poly = new Polyline // create polynomial curve polyline
+        var poly = new Polyline
         {
             Stroke = TryGetBrush("SuccessColor") ?? Brushes.Lime,
             StrokeThickness = 2.5,
             Points = new Avalonia.Collections.AvaloniaList<Point>()
         };
 
-        foreach (var (x, y) in points) // optimized point addition. avoid repeated property lookups
+        foreach (var (x, y) in points)
             poly.Points.Add(new Point(MapX(x), MapY(y)));
 
-        canvas.Children.Add(poly); // add polyline to canvas
+        canvas.Children.Add(poly);
     }
 
-    private void DrawGrid(Canvas canvas, double w, double h, double xMin, double xMax, double yMin, double yMax, // draws grid lines on canvas. both vertical and horizontal
+    private void DrawGrid(Canvas canvas, double w, double h, double xMin, double xMax, double yMin, double yMax,
         Func<double, double> mapX, Func<double, double> mapY)
     {
-        var gridBrush = TryGetBrush("BorderColor") ?? Brushes.Gray; // get grid brush from theme
-        var gridThickness = 0.5;
+        var gridBrush = TryGetBrush("BorderColor") ?? Brushes.Gray;
+        const double gridThickness = 0.5;
 
-        var xStep = CalculateGridStep(xMax - xMin); // calculate grid step for vertical lines
-        for (double x = Math.Ceiling(xMin / xStep) * xStep; x <= xMax; x += xStep) // draw vertical grid lines
+        var xStep = CalculateGridStep(xMax - xMin);
+        for (double x = Math.Ceiling(xMin / xStep) * xStep; x <= xMax; x += xStep)
         {
             var px = mapX(x);
             canvas.Children.Add(new Line
@@ -299,8 +256,8 @@ public partial class PlotWindow : Window
             });
         }
 
-        var yStep = CalculateGridStep(yMax - yMin); // calculate grid step for horizontal lines
-        for (double y = Math.Ceiling(yMin / yStep) * yStep; y <= yMax; y += yStep) // draw horizontal grid lines
+        var yStep = CalculateGridStep(yMax - yMin);
+        for (double y = Math.Ceiling(yMin / yStep) * yStep; y <= yMax; y += yStep)
         {
             var py = mapY(y);
             canvas.Children.Add(new Line
@@ -314,13 +271,13 @@ public partial class PlotWindow : Window
         }
     }
 
-    private void DrawAxes(Canvas canvas, double w, double h, double xMin, double xMax, double yMin, double yMax, // draws coordinate axes on canvas. x.axis at y=0 and y.axis at x=0 if within range
+    private void DrawAxes(Canvas canvas, double w, double h, double xMin, double xMax, double yMin, double yMax,
         Func<double, double> mapX, Func<double, double> mapY)
     {
-        var axisBrush = TryGetBrush("TextPrimary") ?? Brushes.White; // get axis brush from theme
-        var axisThickness = 1.5;
+        var axisBrush = TryGetBrush("TextPrimary") ?? Brushes.White;
+        const double axisThickness = 1.5;
 
-        if (0 >= yMin && 0 <= yMax) // draw x.axis at y=0 if within range
+        if (0 >= yMin && 0 <= yMax)
         {
             var y0 = mapY(0);
             canvas.Children.Add(new Line
@@ -332,7 +289,7 @@ public partial class PlotWindow : Window
             });
         }
 
-        if (0 >= xMin && 0 <= xMax) // draw y.axis at x=0 if within range
+        if (0 >= xMin && 0 <= xMax)
         {
             var x0 = mapX(0);
             canvas.Children.Add(new Line
@@ -345,29 +302,29 @@ public partial class PlotWindow : Window
         }
     }
 
-    private static double CalculateGridStep(double range) // calculates appropriate grid step based on range. returns nice round numbers
+    private static double CalculateGridStep(double range)
     {
-        var magnitude = Math.Pow(10, Math.Floor(Math.Log10(range))); // calculate order of magnitude
-        var normalized = range / magnitude; // normalize range to 1.10
+        range = Math.Max(range, 1e-6);
+        var magnitude = Math.Pow(10, Math.Floor(Math.Log10(range)));
+        var normalized = range / magnitude;
 
-        if (normalized <= 1.5) return magnitude * 0.2; // return appropriate step based on normalized value
+        if (normalized <= 1.5) return magnitude * 0.2;
         if (normalized <= 3) return magnitude * 0.5;
         if (normalized <= 7) return magnitude;
         return magnitude * 2;
     }
 
-    private void DrawAxisLabels(Canvas canvas, double w, double h, double xMin, double xMax, double yMin, double yMax, // draws axis labels on canvas. x.axis labels at bottom. y.axis labels at left. origin label at intersection
+    private void DrawAxisLabels(Canvas canvas, double w, double h, double xMin, double xMax, double yMin, double yMax,
         Func<double, double> mapX, Func<double, double> mapY)
     {
-        var textBrush = TryGetBrush("TextSecondary") ?? Brushes.Gray; // get text brush from theme
-        var fontSize = 11;
+        var textBrush = TryGetBrush("TextSecondary") ?? Brushes.Gray;
+        const int fontSize = 11;
 
-        var xStep = CalculateGridStep(xMax - xMin); // calculate step for x.axis labels
-        for (double x = Math.Ceiling(xMin / xStep) * xStep; x <= xMax; x += xStep) // draw x.axis labels
+        var xStep = CalculateGridStep(xMax - xMin);
+        for (double x = Math.Ceiling(xMin / xStep) * xStep; x <= xMax; x += xStep)
         {
-            if (Math.Abs(x) < xStep * 0.01) continue; // skip origin label
+            if (Math.Abs(x) < xStep * 0.01) continue;
 
-            var px = mapX(x);
             var label = new TextBlock
             {
                 Text = x.ToString("F1"),
@@ -375,17 +332,16 @@ public partial class PlotWindow : Window
                 Foreground = textBrush
             };
 
-            Canvas.SetLeft(label, px - 15); // position label below x.axis
+            Canvas.SetLeft(label, mapX(x) - 15);
             Canvas.SetTop(label, h - 20);
             canvas.Children.Add(label);
         }
 
-        var yStep = CalculateGridStep(yMax - yMin); // calculate step for y.axis labels
-        for (double y = Math.Ceiling(yMin / yStep) * yStep; y <= yMax; y += yStep) // draw y.axis labels
+        var yStep = CalculateGridStep(yMax - yMin);
+        for (double y = Math.Ceiling(yMin / yStep) * yStep; y <= yMax; y += yStep)
         {
-            if (Math.Abs(y) < yStep * 0.01) continue; // skip origin label
+            if (Math.Abs(y) < yStep * 0.01) continue;
 
-            var py = mapY(y);
             var label = new TextBlock
             {
                 Text = y.ToString("F1"),
@@ -393,12 +349,12 @@ public partial class PlotWindow : Window
                 Foreground = textBrush
             };
 
-            Canvas.SetLeft(label, 5); // position label to left of y.axis
-            Canvas.SetTop(label, py - 8);
+            Canvas.SetLeft(label, 5);
+            Canvas.SetTop(label, mapY(y) - 8);
             canvas.Children.Add(label);
         }
 
-        if (0 >= xMin && 0 <= xMax && 0 >= yMin && 0 <= yMax) // draw origin label if origin is visible
+        if (0 >= xMin && 0 <= xMax && 0 >= yMin && 0 <= yMax)
         {
             var originLabel = new TextBlock
             {
@@ -407,12 +363,12 @@ public partial class PlotWindow : Window
                 Foreground = textBrush,
                 FontWeight = FontWeight.Bold
             };
-            Canvas.SetLeft(originLabel, mapX(0) + 5); // position label at origin
+            Canvas.SetLeft(originLabel, mapX(0) + 5);
             Canvas.SetTop(originLabel, mapY(0) + 5);
             canvas.Children.Add(originLabel);
         }
     }
 
-    private IBrush? TryGetBrush(string key) => // tries to get brush from resource dictionary. returns null if not found
+    private IBrush? TryGetBrush(string key) =>
         Resources.TryGetResource(key, null, out var r) ? r as IBrush : null;
 }

@@ -10,18 +10,13 @@ namespace CalculatorGui.Views;
 
 public partial class MainWindow : Window
 {
-    private record ThemeState(bool IsDark); // tracks current theme state. true for dark mode , false for light mode
-
-    private record EvaluationResult(bool Success, string Result, string Error) // represents result of expression evaluation. contains success flag , result string and error message
+    private readonly record struct EvaluationResult(bool Success, string Result, string Error)
     {
-        public static EvaluationResult CreateSuccess(string result) => // creates successful evaluation result with given result string
-            new(true, result, string.Empty);
-
-        public static EvaluationResult CreateError(string error) => // creates error evaluation result with given error message
-            new(false, string.Empty, error);
+        public static EvaluationResult FromSuccess(string result) => new(true, result, string.Empty);
+        public static EvaluationResult FromError(string error) => new(false, string.Empty, error);
     }
 
-    private record UIControls( // encapsulates all UI control references from AXAML markup
+    private record UIControls(
         TextBox? InputBox,
         TextBox? OutputBox,
         TextBlock? ErrorBox,
@@ -32,23 +27,17 @@ public partial class MainWindow : Window
         Button? PlotButton
     );
 
-    private readonly UIControls _controls; // stores references to UI controls
-    private ThemeState _currentTheme = new(IsDark: true); // stores current theme state. defaults to dark mode
+    private readonly UIControls _controls;
+    private bool _isDarkTheme = true;
 
-
-
-
-
-    // initializes  main window and its components
     public MainWindow()
     {
         InitializeComponent();
         _controls = InitializeControls();
-        ApplyTheme(_currentTheme);
+        ThemeResourceHelper.Apply(Resources, _isDarkTheme);
         SetupEventHandlers();
     }
 
-    // retrieves UI control references from the AXAML markup
     private UIControls InitializeControls() =>
         new(
             InputBox: this.FindControl<TextBox>("inputBox"),
@@ -61,7 +50,6 @@ public partial class MainWindow : Window
             PlotButton: this.FindControl<Button>("plotButton")
         );
 
-    // attaches event handlers to UI controls
     private void SetupEventHandlers()
     {
         if (_controls.EvaluateButton != null)
@@ -80,68 +68,61 @@ public partial class MainWindow : Window
             _controls.PlotButton.Click += (_, _) => OpenPlotWindow();
     }
 
-    private EvaluationResult EvaluateExpression(string input) // evaluates expression string using F# interpreter. returns success with result or error message
+    private EvaluationResult EvaluateExpression(string input)
     {
-        if (string.IsNullOrWhiteSpace(input)) return EvaluationResult.CreateError("Please enter an expression");
+        if (string.IsNullOrWhiteSpace(input)) return EvaluationResult.FromError("Please enter an expression");
         try
         {
-            var tuple = Interpreter.parseNeval(Interpreter.lexer(input)).ToValueTuple(); // lex and parse input then evaluate
-            return EvaluationResult.CreateSuccess(Interpreter.NumberToString(tuple.Item2));
+            var tuple = Interpreter.parseNeval(Interpreter.lexer(input)).ToValueTuple();
+            return EvaluationResult.FromSuccess(Interpreter.NumberToString(tuple.Item2));
         }
-        catch (Exception ex) { return EvaluationResult.CreateError(ex.Message); }
+        catch (Exception ex) { return EvaluationResult.FromError(ex.Message); }
     }
 
-    private void HandleEvaluation() => // handles evaluate button click. evaluates input box text and applies result
+    private void HandleEvaluation() =>
         ApplyEvaluationResult(EvaluateExpression(_controls.InputBox?.Text ?? string.Empty));
 
-    private void ApplyEvaluationResult(EvaluationResult result) // applies evaluation result to UI. updates output box or error box based on success
+    private void ApplyEvaluationResult(EvaluationResult result)
     {
-        var o = _controls.OutputBox; var e = _controls.ErrorBox;
-        if (o == null || e == null) return;
+        if (_controls is not { OutputBox: { } output, ErrorBox: { } error }) return;
         if (result.Success)
-        { o.Text = result.Result; o.Focusable = true; o.IsHitTestVisible = true; e.Text = string.Empty; }
+        {
+            output.Text = result.Result;
+            output.Focusable = output.IsHitTestVisible = true;
+            error.Text = string.Empty;
+        }
         else
-        { o.Text = string.Empty; o.Focusable = false; o.IsHitTestVisible = false; e.Text = result.Error; }
+        {
+            output.Text = string.Empty;
+            output.Focusable = output.IsHitTestVisible = false;
+            error.Text = result.Error;
+        }
     }
 
-    private void HandleClear() // handles clear button click. resets input box , error box and output box to default state
+    private void HandleClear()
     {
-        if (_controls.InputBox != null) _controls.InputBox.Text = string.Empty;
-        if (_controls.ErrorBox != null) _controls.ErrorBox.Text = string.Empty;
-        if (_controls.OutputBox != null)
-        { _controls.OutputBox.Text = "Results here..."; _controls.OutputBox.Focusable = false; _controls.OutputBox.IsHitTestVisible = false; }
+        if (_controls.InputBox is { } input) input.Text = string.Empty;
+        if (_controls.ErrorBox is { } error) error.Text = string.Empty;
+        if (_controls.OutputBox is { } output)
+        {
+            output.Text = "Results here...";
+            output.Focusable = output.IsHitTestVisible = false;
+        }
     }
 
-    private void HandleThemeToggle() // handles theme toggle menu item click. switches between dark and light mode
+    private void HandleThemeToggle()
     {
-        _currentTheme = new ThemeState(IsDark: !_currentTheme.IsDark);
-        ApplyTheme(_currentTheme);
+        _isDarkTheme = !_isDarkTheme;
+        ThemeResourceHelper.Apply(Resources, _isDarkTheme);
     }
 
-    private static readonly (string target, string suffix)[] ResourceMap = // maps resource names to their suffixes for theme switching
-    {
-        ("WindowBackground","Background"),("SurfaceBackground","Surface"),("BorderColor","Border"),
-        ("TextPrimary","Text"),("TextSecondary","TextSecondary"),("AccentColor","Accent"),
-        ("SuccessColor","Success"),("ErrorColor","Error"),("ButtonPrimary","ButtonPrimary"),
-        ("ButtonPrimaryHover","ButtonPrimaryHover"),("ButtonSecondary","ButtonSecondary"),
-        ("ButtonSecondaryHover","ButtonSecondaryHover"),("ErrorBackground","ErrorBackground")
-    };
-
-    private void ApplyTheme(ThemeState theme) // applies theme to window by updating resource dictionary with light or dark theme resources
-    {
-        if (Resources == null) return;
-        var prefix = theme.IsDark ? "Dark" : "Light";
-        foreach (var (target, suffix) in ResourceMap)
-            if (Resources.TryGetResource(prefix + suffix, null, out var r)) Resources[target] = r;
-    }
-
-    private async Task HandleHelp() // displays help dialog window with expression syntax guide
+    private async Task HandleHelp()
     {
         var dialog = CreateHelpDialog();
         await dialog.ShowDialog(this);
     }
 
-    private Window CreateHelpDialog() // creates and configures the help dialog window with title. dimensions and background
+    private Window CreateHelpDialog()
     {
         var dialog = new Window
         {
@@ -159,7 +140,7 @@ public partial class MainWindow : Window
         return dialog;
     }
 
-    private void ApplyDialogResources(Window dialog) // copies theme resources from main window to help dialog for consistent styling
+    private void ApplyDialogResources(Window dialog)
     {
         if (Resources == null) return;
         var map = new (string k, string s)[] { ("WindowBg", "WindowBackground"), ("SurfaceBg", "SurfaceBackground"), ("BorderClr", "BorderColor"), ("TextPri", "TextPrimary"), ("TextSec", "TextSecondary"), ("AccentClr", "AccentColor"), ("SuccessClr", "SuccessColor"), ("ButtonPri", "ButtonPrimary") };
@@ -167,7 +148,7 @@ public partial class MainWindow : Window
             if (Resources.TryGetResource(s, null, out var r)) dialog.Resources[k] = r;
     }
 
-    private ScrollViewer CreateHelpDialogContent(Window dialog) // creates the scrollable content container for the help dialog
+    private ScrollViewer CreateHelpDialogContent(Window dialog)
     {
         var content = new StackPanel { Spacing = 15 };
         var elements = CreateHelpContentElements(dialog);
@@ -183,7 +164,6 @@ public partial class MainWindow : Window
         };
     }
 
-    // generates all content elements for the help dialog
     private IEnumerable<Control> CreateHelpContentElements(Window dialog)
     {
         yield return CreateTitleBlock(dialog);
@@ -210,7 +190,6 @@ public partial class MainWindow : Window
         yield return CreateCloseButton(dialog);
     }
 
-    // creates the title text block for the help dialog
     private TextBlock CreateTitleBlock(Window dialog) =>
         new()
         {
@@ -221,7 +200,6 @@ public partial class MainWindow : Window
             Margin = new Avalonia.Thickness(0, 0, 0, 10)
         };
 
-    // returns help items for supported operators
     private IEnumerable<Border> GetOperatorHelpItems() =>
         new[]
         {
@@ -234,7 +212,6 @@ public partial class MainWindow : Window
         }
         .Select(op => CreateHelpItem(op.Item1, op.Item2, op.Item3));
 
-    // returns help items for supported number types
     private IEnumerable<Border> GetNumberTypeHelpItems() =>
         new[]
         {
@@ -243,7 +220,6 @@ public partial class MainWindow : Window
         }
         .Select(nt => CreateHelpItem(nt.Item1, nt.Item2, nt.Item3));
 
-    // returns expression evaluation rules
     private static IEnumerable<string> GetExpressionRules() =>
         new[]
         {
@@ -253,7 +229,6 @@ public partial class MainWindow : Window
             "• Supports nested parentheses"
         };
 
-    // returns example expressions for demonstration
     private static IEnumerable<string> GetExampleExpressions() =>
         new[]
         {
@@ -263,7 +238,6 @@ public partial class MainWindow : Window
             "3.14 * 3.5 ^ 2"
         };
 
-    // creates the close button for the help dialog
     private Button CreateCloseButton(Window dialog)
     {
         var button = new Button
@@ -284,17 +258,15 @@ public partial class MainWindow : Window
     }
 
 
-    // opens dedicated plot window with current theme
     private void OpenPlotWindow()
     {
         var plotWindow = new PlotWindow();
-        plotWindow.SetTheme(_currentTheme.IsDark);
+        plotWindow.SetTheme(_isDarkTheme);
         plotWindow.Show();
     }
 
 
 
-    // creates a section header border element
     private Border CreateSectionHeader(string text) =>
         new()
         {
@@ -312,7 +284,6 @@ public partial class MainWindow : Window
             }
         };
 
-    // creates a help item displaying name. symbol. and example
     private Border CreateHelpItem(string name, string symbol, string example) =>
         new()
         {
@@ -337,7 +308,6 @@ public partial class MainWindow : Window
         return panel;
     }
 
-    // creates a text block for informational text
     private TextBlock CreateInfoText(string text) =>
         new()
         {
@@ -348,7 +318,6 @@ public partial class MainWindow : Window
             TextWrapping = Avalonia.Media.TextWrapping.Wrap
         };
 
-    // creates a styled border for example expressions
     private Border CreateExampleText(string example) =>
         new()
         {

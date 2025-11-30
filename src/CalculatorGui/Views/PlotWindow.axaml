@@ -6,32 +6,11 @@
         MinWidth="600" MinHeight="500">
 
     <Window.Resources>
-        <!-- inherit theme colors from main window -->
-        <SolidColorBrush x:Key="DarkBackground">#191919</SolidColorBrush>
-        <SolidColorBrush x:Key="DarkSurface">#2a272a</SolidColorBrush>
-        <SolidColorBrush x:Key="DarkBorder">#4b4a54</SolidColorBrush>
-        <SolidColorBrush x:Key="DarkText">#c9d1d9</SolidColorBrush>
-        <SolidColorBrush x:Key="DarkTextSecondary">#8b949e</SolidColorBrush>
-        <SolidColorBrush x:Key="DarkAccent">#a3cfcd</SolidColorBrush>
-        <SolidColorBrush x:Key="DarkSuccess">#56d364</SolidColorBrush>
-        <SolidColorBrush x:Key="DarkError">#EC1915</SolidColorBrush>
-        <SolidColorBrush x:Key="DarkButtonPrimary">#238636</SolidColorBrush>
-        <SolidColorBrush x:Key="DarkButtonPrimaryHover">#2ea043</SolidColorBrush>
-        <SolidColorBrush x:Key="DarkButtonSecondary">#21262d</SolidColorBrush>
-        <SolidColorBrush x:Key="DarkButtonSecondaryHover">#30363d</SolidColorBrush>
-        
-        <SolidColorBrush x:Key="LightBackground">#ffffff</SolidColorBrush>
-        <SolidColorBrush x:Key="LightSurface">#dadde2</SolidColorBrush>
-        <SolidColorBrush x:Key="LightBorder">#b1bdc5</SolidColorBrush>
-        <SolidColorBrush x:Key="LightText">#628281</SolidColorBrush>
-        <SolidColorBrush x:Key="LightTextSecondary">#43655a</SolidColorBrush>
-        <SolidColorBrush x:Key="LightAccent">#324b4a</SolidColorBrush>
-        <SolidColorBrush x:Key="LightSuccess">#238636</SolidColorBrush>
-        <SolidColorBrush x:Key="LightError">#EC1915</SolidColorBrush>
-        <SolidColorBrush x:Key="LightButtonPrimary">#238636</SolidColorBrush>
-        <SolidColorBrush x:Key="LightButtonPrimaryHover">#2ea043</SolidColorBrush>
-        <SolidColorBrush x:Key="LightButtonSecondary">#eaeef2</SolidColorBrush>
-        <SolidColorBrush x:Key="LightButtonSecondaryHover">#d0d7de</SolidColorBrush>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://CalculatorGui/Views/ThemeResources.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Window.Resources>
 
     <Window.Styles>
