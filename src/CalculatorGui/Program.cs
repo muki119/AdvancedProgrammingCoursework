@@ -7,14 +7,13 @@ namespace CalculatorGui;
 sealed class Program
 {
     [STAThread]
-    public static void Main(string[] args) // entry point for application. initializes Avalonia framework and starts the GUI
+    public static void Main(string[] args)
     {
-        var testCall = Interpreter.testCall; // test call to verify F# library connection
         BuildAvaloniaApp()
             .StartWithClassicDesktopLifetime(args);
     }
 
-    public static AppBuilder BuildAvaloniaApp() // configures Avalonia app builder with platform detection and font settings
+    public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
             .WithInterFont()
