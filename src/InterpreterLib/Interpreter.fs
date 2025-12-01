@@ -37,11 +37,12 @@ let isZero num =
     | Float f when f = 0.0 -> true
     | _ -> false
 
-let toNumberFloat (num: float) : Number = Float(num) 
-let NumberToString (num:Number) : string =
+let toNumberFloat (num: float) : Number = Float(num)
+
+let NumberToString (num: Number) : string =
     match num with
-        | Int i -> i.ToString()
-        | Float f  -> f.ToString()
+    | Int i -> i.ToString()
+    | Float f -> f.ToString()
 
 let toPrimativeFloat (num: Number) : float =
     match num with
@@ -60,6 +61,8 @@ let zeroDivisionError = System.Exception("Cannot Divide by zero") // error decla
 
 let variableNotFoundError (varName: string) =
     System.Exception(sprintf "Variable `%s` not found" varName)
+
+let incompatibleTypesError = System.Exception("Incompatible types for operation") // error declaration
 
 let removeWhitespace (input: string) : string =
     String.Concat(input.ToCharArray() |> Array.filter (fun c -> not (isblank c))) // turns string into char array to output of the 'ToCharArray' function is piped to filter function which removes all that is blank , then concatenated back into a string
@@ -139,7 +142,7 @@ let lexer input =
 // <Topt>     ::= "*" <NR> <Topt> | "/" <NR> <Topt> | <empty>
 // <NR>       ::= "Num" <value> | "(" <E> ")"
 
-let typeCoerce (a: Number) (b: Number) : (Number * Number) = // turns both numbers into floats unless both are integers
+let typeCoerce a b : (Number * Number) = // turns both numbers into floats unless both are integers
     match (a, b) with
     | (Int i, Int j) -> (Int i, Int j)
     | (Int i, Float f) -> (Float(float i), Float f)
@@ -205,6 +208,7 @@ let parseNeval tList =
             match (value, tval) with
             | (Int v, Int tv) -> Eopt(tLst, Int(v + tv), var) // then recursively call Eopt again with the updated value
             | (Float v, Float tv) -> Eopt(tLst, Float(v + tv), var) // then recursively call Eopt again with the updated value
+            | _ -> raise incompatibleTypesError
         | Sub :: tail ->
             let (tLst, tval, var) = T tail // will basically call the rest of the functions until a number is found - will also do all the multiplication and division first due to the order of the calls (Bidmas)
             let (value, tval) = typeCoerce value tval
@@ -212,6 +216,7 @@ let parseNeval tList =
             match (value, tval) with
             | (Int v, Int tv) -> Eopt(tLst, Int(v - tv), var)
             | (Float v, Float tv) -> Eopt(tLst, Float(v - tv), var)
+            | _ -> raise incompatibleTypesError
         | _ -> (tList, value, var) // if no operator found then return the list and the value
 
     and T tList = (IndicesOpt >> Topt) tList
@@ -225,6 +230,7 @@ let parseNeval tList =
             match (value, tval) with
             | (Int v, Int tv) -> Topt(tLst, Int(v * tv), var)
             | (Float v, Float tv) -> Topt(tLst, Float(v * tv), var)
+            | _ -> raise incompatibleTypesError
         | Div :: tail ->
             let (tLst, tval, var) = IndicesOpt tail
             let (value, tval) = typeCoerce value tval
@@ -235,6 +241,7 @@ let parseNeval tList =
                 match (value, tval) with
                 | (Int v, Int tv) -> Topt(tLst, Int(v / tv), var)
                 | (Float v, Float tv) -> Topt(tLst, Float(v / tv), var)
+                | _ -> raise incompatibleTypesError
         | Mod :: tail ->
             let (tLst, tval, var) = IndicesOpt tail
             let (value, tval) = typeCoerce value tval
@@ -258,6 +265,7 @@ let parseNeval tList =
             match (value, tval) with
             | (Int v, Int tv) -> Iopt(tLst, Int(pown v tv), var)
             | (Float v, Float tv) -> Iopt(tLst, Float((v ** tv)), var)
+            | _ -> raise incompatibleTypesError
 
         | _ -> (tList, value, var)
 
@@ -291,7 +299,7 @@ let parseNeval tList =
     A tList
 
 // Helper functions for C# interop
-let setVariable (name: string, value: Number) : unit =
+let setVariable (name: string) (value: Number) : unit =
     SymbolTable <- SymbolTable.Add(name, value)
 
 let clearVariables () : unit =
