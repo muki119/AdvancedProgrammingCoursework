@@ -101,7 +101,51 @@ let rec scNumber (iStr, iVal: Number) = // recursive function to scan integer va
             | Float f -> f
 
         let (fStr, fVal) = scFloat (tail, initialValue, 10.0)
-        (fStr, Float fVal) // return the rest of the string and the float value
+        
+        // check if expo notation follows after decimal
+        match fStr with
+        | 'E' :: eTail | 'e' :: eTail ->
+            // parse optional sign for expo
+            let (expSign, expTail) =
+                match eTail with
+                | '+' :: rest -> (1.0, rest)
+                | '-' :: rest -> (-1.0, rest)
+                | _ -> (1.0, eTail)
+            
+            // parse expo digits
+            let rec scExponent (eTail, expVal: int) =
+                match eTail with
+                | c :: rest when isdigit c ->
+                    scExponent (rest, expVal * 10 + (intVal c))
+                | _ -> (eTail, expVal)
+            
+            let (finalStr, expValue) = scExponent (expTail, 0)
+            let result = fVal * (10.0 ** (expSign * float expValue))
+            (finalStr, Float result)
+        | _ -> (fStr, Float fVal) // return the rest of string and float
+    | 'E' :: tail | 'e' :: tail -> // if expo notes e or E after int then parse 
+        let baseValue =
+            match iVal with
+            | Int i -> float i
+            | Float f -> f
+        
+        // parse optional sign for expo
+        let (expSign, expTail) =
+            match tail with
+            | '+' :: rest -> (1.0, rest)
+            | '-' :: rest -> (-1.0, rest)
+            | _ -> (1.0, tail)
+        
+        // parse expo digits
+        let rec scExponent (eTail, expVal: int) =
+            match eTail with
+            | c :: rest when isdigit c ->
+                scExponent (rest, expVal * 10 + (intVal c))
+            | _ -> (eTail, expVal)
+        
+        let (finalStr, expValue) = scExponent (expTail, 0)
+        let result = baseValue * (10.0 ** (expSign * float expValue))
+        (finalStr, Float result)
     | _ -> (iStr, iVal) // return the rest of the string and the integer value when no more digits found
 
 let lexer input =
