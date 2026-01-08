@@ -10,6 +10,26 @@ type Number =
     | Int of int
     | Float of float
 
+type Functions =
+    | Sin
+    | Cos
+    | Tan
+    | Log
+    | Sqrt
+
+let functionMap =
+    Map.ofList
+        [ (Sin, Math.Sin)
+          (Cos, Math.Cos)
+          (Tan, Math.Tan)
+          (Log, Math.Log)
+          (Sqrt, Math.Sqrt) ]
+
+let mathFunc funcName value =
+    match Map.tryFind funcName functionMap with
+    | Some f -> f value
+    | None -> raise (System.Exception(sprintf "Function `%s` not found" (funcName.ToString())))
+
 type terminal =
     | Add
     | Sub
@@ -23,6 +43,7 @@ type terminal =
     | None
     | Num of Number
     | Sym of string
+    | Func of Functions
 
 
 
@@ -168,7 +189,14 @@ let lexer input =
                 | _ -> (strTail, char) // else return the rest of the string and the built variable string
 
             let (vStr, vName) = buildVarString (tail, c.ToString()) // call the buildVarString function to get the full variable name
-            Sym vName :: scan (vStr) // append Sym with the
+
+            match vName.ToLower() with
+            | "sin" -> Func Sin :: scan (vStr)
+            | "cos" -> Func Cos :: scan (vStr)
+            | "tan" -> Func Tan :: scan (vStr)
+            | "log" -> Func Log :: scan (vStr)
+            | "sqrt" -> Func Sqrt :: scan (vStr)
+            | _ -> Sym vName :: scan (vStr) // if not a function , then append Sym with the variable name to the array and call scan on the rest of the array
 
         | c :: tail when isblank c -> scan (tail) // if blank space then just call scan on the rest of the array
         | c :: tail when isdigit c ->
@@ -315,6 +343,7 @@ let parseNeval tList =
 
     and NR tList = // works from the bottom up  // the actual evaluation starts here then gets returned up the chain
         match tList with
+
         | Sub :: tail ->
             let (tLst, tval, var) = NR tail // if a negative number is found , call NR again on the rest of the list
 
@@ -322,6 +351,23 @@ let parseNeval tList =
             | Int v -> (tLst, Int(-v), var) // return the rest of the list , negative value and variable char
             | Float v -> (tLst, Float(-v), var) // return the rest of the list ,
         | Num value :: tail -> (tail, value, "_") // if number found then return the rest of the list , the number value and a placeholder char for variable
+        | Func mFunc :: tail ->
+            // if function is found , look for brackets afterwards
+            match tail with
+            | Lpar :: tTail ->
+                let (tLst, tval, var) = E tTail // call E on the rest of the list after the left paren
+
+                match tLst with
+                | Rpar :: restTail ->
+                    // if right paren found then evaluate the function here
+                    let primativeVal = toPrimativeFloat tval
+                    let result = mathFunc mFunc primativeVal
+                    (restTail, Float result, var) // return the rest of the list after right paren , the function evaluated value and placeholder char
+                | _ -> raise parseError // raise error if no right paren found
+            | _ -> raise parseError // raise error if no left paren found after function
+
+
+
         | Sym var :: tail ->
             if not tail.IsEmpty && tail.Head = Assign then
                 // add another param to all functions to pass symbol char up the chain
