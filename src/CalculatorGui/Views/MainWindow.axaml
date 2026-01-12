@@ -6,40 +6,40 @@
         Width="1000" Height="800"
         MinWidth="600" MinHeight="500">
 
-    <Window.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-            <ResourceInclude Source="avares://CalculatorGui/Views/ThemeResources.axaml"/>
-            </ResourceDictionary.MergedDictionaries>
-        </ResourceDictionary>
-    </Window.Resources>
-
+    <Window.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceInclude Source="avares://CalculatorGui/Views/ThemeResources.axaml"/></ResourceDictionary.MergedDictionaries></ResourceDictionary></Window.Resources>
 
 
 <DockPanel>
         <Menu DockPanel.Dock="Top">
+
             <MenuItem Header="View">
                 <MenuItem x:Name="themeMenuItem" Header="Toggle Theme (Light / Dark)" />
             </MenuItem>
+
             <MenuItem Header="Help">
                 <MenuItem x:Name="helpMenuItem" Header="About Syntax" />
             </MenuItem>
+
         </Menu>
+
         <Grid Margin="30" RowDefinitions="Auto,Auto,Auto,*,Auto,Auto">
             <StackPanel Grid.Row="0" Margin="0,0,0,20">
                 <TextBlock Text="Maths Expression Evaluator" FontSize="28" FontWeight="Bold" Classes="title" HorizontalAlignment="Center"/>
                 <TextBlock Text="Enter an expression and click Evaluate" FontSize="14" Classes="subtitle" HorizontalAlignment="Center" Margin="0,8,0,0"/>
             </StackPanel>
+
             <Border Grid.Row="1" Classes="surface" BorderThickness="1" CornerRadius="8" Padding="20" Margin="0,0,0,15">
                 <StackPanel>
                     <TextBlock Text="Expression:" FontSize="14" Classes="label" Margin="0,0,0,8" FontWeight="SemiBold"/>
                     <TextBox x:Name="inputBox" Height="45" FontSize="18" Watermark="e.g., (2 + 1) * 5 - 4 / 2" />
                 </StackPanel>
             </Border>
+
             <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,15">
                 <Button x:Name="evaluateButton" Content="Evaluate" Width="140" Height="40" FontSize="15" Margin="0,0,10,0" />
                 <Button x:Name="clearButton" Content="Clear" Width="120" Height="40" FontSize="15" Classes="clear" />
             </StackPanel>
+
             <Border Grid.Row="3" Classes="surface" BorderThickness="1" CornerRadius="8" Padding="20">
                 <StackPanel>
                     <TextBlock Text="Result:" FontSize="14" Classes="label" Margin="0,0,0,8" FontWeight="SemiBold"/>
@@ -48,19 +48,22 @@
                     </ScrollViewer>
                 </StackPanel>
             </Border>
-            <Border Grid.Row="4" Margin="0,15,0,0" Padding="15" Classes="errorBorder" BorderThickness="0" CornerRadius="6" IsVisible="{Binding #errorBox.Text, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+
+            <Border Grid.Row="4" Margin="0,12,0,0" Padding="15" Classes="errorBorder" BorderThickness="0" CornerRadius="6" IsVisible="{Binding #errorBox.Text, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
                 <StackPanel Orientation="Horizontal">
                     <TextBlock Text="Error:" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center" Classes="error" FontWeight="SemiBold"/>
                     <TextBlock x:Name="errorBox" FontSize="14" Classes="error" TextWrapping="Wrap" VerticalAlignment="Center" />
                 </StackPanel>
             </Border>
-            <Border Grid.Row="5" Classes="surface" BorderThickness="1" CornerRadius="8" Padding="20" Margin="0,15,0,0">
+
+            <Border Grid.Row="5" Classes="surface" BorderThickness="1" CornerRadius="8" Padding="15" Margin="0,12,0,0">
                 <StackPanel Spacing="12">
                     <TextBlock Text="Polynomial Plotting" FontSize="16" FontWeight="SemiBold" Classes="title"/>
                     <TextBlock Text="Plot polynomial functions with grid lines and axis labels" FontSize="12" Classes="label"/>
                     <Button x:Name="plotButton" Content="Open Plot Window" Width="180" Height="40" FontSize="14" HorizontalAlignment="Left"/>
                 </StackPanel>
             </Border>
+
         </Grid>
     </DockPanel>
 </Window>

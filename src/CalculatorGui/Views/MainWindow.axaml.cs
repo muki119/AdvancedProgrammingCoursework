@@ -404,7 +404,7 @@ public partial class MainWindow : Window
 
 
 
-        // symbol
+        // symbol 
         TextBlock symbolBlock = new TextBlock();
         symbolBlock.Text = symbol;
         symbolBlock.Width = 60;
