@@ -15,15 +15,21 @@ type Functions =
     | Cos
     | Tan
     | Log
+    | Ln
     | Sqrt
+
+type Irrationals = | Pi
 
 let functionMap =
     Map.ofList
         [ (Sin, Math.Sin)
           (Cos, Math.Cos)
           (Tan, Math.Tan)
-          (Log, Math.Log)
+          (Log, Math.Log10)
+          (Ln, Math.Log)
           (Sqrt, Math.Sqrt) ]
+
+let Irrationals = Map.ofList [ ("pi", Math.PI) ]
 
 let mathFunc funcName value =
     match Map.tryFind funcName functionMap with
@@ -41,6 +47,7 @@ type terminal =
     | Mod
     | Assign
     | None
+    | Irr of Irrationals
     | Num of Number
     | Sym of string
     | Func of Functions
@@ -122,48 +129,48 @@ let rec scNumber (iStr, iVal: Number) = // recursive function to scan integer va
             | Float f -> f
 
         let (fStr, fVal) = scFloat (tail, initialValue, 10.0)
-        
+
         // check if expo notation follows after decimal
         match fStr with
-        | 'E' :: eTail | 'e' :: eTail ->
+        | 'E' :: eTail
+        | 'e' :: eTail ->
             // parse optional sign for expo
             let (expSign, expTail) =
                 match eTail with
                 | '+' :: rest -> (1.0, rest)
                 | '-' :: rest -> (-1.0, rest)
                 | _ -> (1.0, eTail)
-            
+
             // parse expo digits
             let rec scExponent (eTail, expVal: int) =
                 match eTail with
-                | c :: rest when isdigit c ->
-                    scExponent (rest, expVal * 10 + (intVal c))
+                | c :: rest when isdigit c -> scExponent (rest, expVal * 10 + (intVal c))
                 | _ -> (eTail, expVal)
-            
+
             let (finalStr, expValue) = scExponent (expTail, 0)
             let result = fVal * (10.0 ** (expSign * float expValue))
             (finalStr, Float result)
         | _ -> (fStr, Float fVal) // return the rest of string and float
-    | 'E' :: tail | 'e' :: tail -> // if expo notes e or E after int then parse 
+    | 'E' :: tail
+    | 'e' :: tail -> // if expo notes e or E after int then parse
         let baseValue =
             match iVal with
             | Int i -> float i
             | Float f -> f
-        
+
         // parse optional sign for expo
         let (expSign, expTail) =
             match tail with
             | '+' :: rest -> (1.0, rest)
             | '-' :: rest -> (-1.0, rest)
             | _ -> (1.0, tail)
-        
+
         // parse expo digits
         let rec scExponent (eTail, expVal: int) =
             match eTail with
-            | c :: rest when isdigit c ->
-                scExponent (rest, expVal * 10 + (intVal c))
+            | c :: rest when isdigit c -> scExponent (rest, expVal * 10 + (intVal c))
             | _ -> (eTail, expVal)
-        
+
         let (finalStr, expValue) = scExponent (expTail, 0)
         let result = baseValue * (10.0 ** (expSign * float expValue))
         (finalStr, Float result)
@@ -196,6 +203,8 @@ let lexer input =
             | "tan" -> Func Tan :: scan (vStr)
             | "log" -> Func Log :: scan (vStr)
             | "sqrt" -> Func Sqrt :: scan (vStr)
+            | "ln" -> Func Ln :: scan (vStr)
+            | "pi" -> Irr Pi :: scan (vStr)
             | _ -> Sym vName :: scan (vStr) // if not a function , then append Sym with the variable name to the array and call scan on the rest of the array
 
         | c :: tail when isblank c -> scan (tail) // if blank space then just call scan on the rest of the array
@@ -365,7 +374,11 @@ let parseNeval tList =
                     (restTail, Float result, var) // return the rest of the list after right paren , the function evaluated value and placeholder char
                 | _ -> raise parseError // raise error if no right paren found
             | _ -> raise parseError // raise error if no left paren found after function
-
+        | Irr irr :: tail ->
+            match irr with
+            | Pi ->
+                let piValue = Irrationals.["pi"]
+                (tail, Float piValue, "_") // return the rest of the list , pi value and placeholder char
 
 
         | Sym var :: tail ->
