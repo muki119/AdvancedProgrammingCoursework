@@ -1,0 +1,51 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="CalculatorGui.Views.PlotWindow"
+        Title="Polynomial Plot"
+        Width="900" Height="700"
+        MinWidth="600" MinHeight="500">
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://CalculatorGui/Views/ThemeResources.axaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="20" RowDefinitions="Auto,*">
+        <Border Grid.Row="0" Classes="surface" BorderThickness="1" CornerRadius="8" Padding="16" Margin="0,0,0,15">
+            <StackPanel Spacing="12">
+                <TextBlock Text="Function Plotter" FontSize="16" FontWeight="SemiBold" Foreground="{DynamicResource AccentColor}"/>
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0" Spacing="8">
+                        <TextBlock Text="Expression (use 'x' as variable)" Classes="label" FontSize="12"/>
+                        <TextBox x:Name="coeffsBox" Watermark="e.g., x^2 + 3*x + 1 or 2*x - 5 or x^3 - 4*x" FontSize="14"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="12,0,0,0">
+                        <StackPanel Width="100">
+                            <TextBlock Text="x min" Classes="label" FontSize="11"/>
+                            <TextBox x:Name="xMinBox" Text="-10"/>
+                        </StackPanel>
+                        <StackPanel Width="100">
+                            <TextBlock Text="x max" Classes="label" FontSize="11"/>
+                            <TextBox x:Name="xMaxBox" Text="10"/>
+                        </StackPanel>
+                        <StackPanel Width="80">
+                            <TextBlock Text="Δx" Classes="label" FontSize="11"/>
+                            <TextBox x:Name="dxBox" Text="0.1"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button x:Name="plotButton" Content="Plot" Width="100"/>
+                    <Button x:Name="clearButton" Content="Clear" Width="100" Classes="secondary"/>
+                    <TextBlock x:Name="plotError" Classes="error" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+        <Border Grid.Row="1" Classes="surface" BorderThickness="1" CornerRadius="8" Padding="8">
+            <Canvas x:Name="plotCanvas" ClipToBounds="True"/>
+        </Border>
+    </Grid>
+</Window>
